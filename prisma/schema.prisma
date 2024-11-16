@@ -1,0 +1,118 @@
+// Define SQL schema for Prisma with relations between Users, Auctions, Bids, and Categories.
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgres" // Choose your SQL-based database
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id          Int         @id @default(autoincrement())
+    name        String
+    isAdmin     Boolean     @default(false)
+    suspended   Boolean     @default(false)
+    bids        Bid[]
+    watchlist   WatchList[]
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+    items       Auction[]   @relation("UserAsSeller")
+    boughtItems Auction[]   @relation("UserAsBuyer")
+}
+
+model Auction {
+    id            Int      @id @default(autoincrement())
+    title         String
+    description   String
+    startPrice    Float    @default(0.00)
+    shippingPrice Float    @default(0.00)
+    startTime     DateTime @default(now())
+    endTime       DateTime @default(now())
+    quantity      Int      @default(1)
+
+    seller   User  @relation("UserAsSeller", fields: [sellerId], references: [id])
+    sellerId Int
+    buyer    User? @relation("UserAsBuyer", fields: [buyerId], references: [id])
+    buyerId  Int? // Nullable to support auctions with no buyer yet
+
+    isActive        Boolean @default(true)
+    buyItNowEnabled Boolean @default(false)
+    deleted         Boolean @default(false)
+	flagged			Boolean @default(false)
+
+    closedAt   DateTime?
+    bids       Bid[]
+    categories Category[]             @relation("AuctionCategories")
+    createdAt  DateTime               @default(now())
+    updatedAt  DateTime               @default(now()) @updatedAt
+    watchlists AuctionsOnWatchLists[]
+}
+
+model Bid {
+    id        Int      @id @default(autoincrement())
+    amount    Float
+    placedAt  DateTime @default(now())
+    bidder    User     @relation(fields: [userId], references: [id])
+    userId    Int
+    auction   Auction  @relation(fields: [auctionId], references: [id])
+    auctionId Int
+}
+
+model Category {
+    id         Int                      @id @default(autoincrement())
+    name       String                   @unique
+    auctions   Auction[]                @relation("AuctionCategories")
+    watchlists CategoriesOnWatchLists[]
+}
+
+model WatchList {
+    id         Int                      @id @default(autoincrement())
+    name       String                   @default("My Watchlist")
+    user       User                     @relation(fields: [userId], references: [id])
+    userId     Int
+    categories CategoriesOnWatchLists[]
+    auctions   AuctionsOnWatchLists[]
+}
+
+model AuctionsOnWatchLists {
+    watchlist   WatchList @relation(fields: [watchlistId], references: [id])
+    watchlistId Int
+    auction     Auction   @relation(fields: [auctionId], references: [id])
+    auctionId   Int
+
+    @@id([watchlistId, auctionId])
+}
+
+model CategoriesOnWatchLists {
+    watchlist   WatchList @relation(fields: [watchlistId], references: [id])
+    watchlistId Int
+    category    Category  @relation(fields: [categoryId], references: [id])
+    categoryId  Int
+
+    @@id([watchlistId, categoryId])
+}
+
+// generator zod {
+//     provider = "zod-prisma"
+//     output   = "./zod_new" // (default) the directory where generated zod schemas will be saved
+//
+//     relationModel = true // (default) Create and export both plain and related models.
+//     // relationModel         = "default" // Do not export model without relations.
+//     // relationModel         = false // Do not generate related model
+//
+//     modelCase = "PascalCase" // (default) Output models using pascal case (ex. UserModel, PostModel)
+//     // modelCase             = "camelCase" // Output models using camel case (ex. userModel, postModel)
+//
+//     modelSuffix = "Model" // (default) Suffix to apply to your prisma models when naming Zod schemas
+//
+//     // useDecimalJs          = false // (default) represent the prisma Decimal type using as a JS number
+//     useDecimalJs = false // represent the prisma Decimal type using Decimal.js (as Prisma does)
+//
+//     // imports = index // (default) will import the referenced file in generated schemas to be used via imports.someExportedVariable
+//
+//     // https://www.prisma.io/docs/concepts/components/prisma-client/working-with-fields/working-with-json-fields#filtering-by-null-values
+//     prismaJsonNullability = true // (default) uses prisma's scheme for JSON field nullability
+//     // prismaJsonNullability = false // allows null assignment to optional JSON fields
+// }
