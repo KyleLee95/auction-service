@@ -7,7 +7,6 @@ import {
   BidModelWithAuction,
 } from "../../prisma/zod";
 import { ParamsSchema } from "./schemas";
-import amqp from "amqplib";
 
 const router = new OpenAPIHono();
 
@@ -18,20 +17,15 @@ const getAuctionsRoute = createRoute({
   request: {
     query: z
       .object({
-        userId: z.preprocess((val) => {
-          if (typeof val === "string") {
-            const num = Number(val);
-            if (Number.isInteger(num)) {
-              return num;
-            } else {
-              return NaN;
-            }
-          }
-          return val;
-        }, z.number().int()),
+        userId: z.string(),
         includeBidOn: z.coerce.boolean().optional(),
       })
-      .openapi({ example: { userId: 1, includeBidOn: false } }),
+      .openapi({
+        example: {
+          userId: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e",
+          includeBidOn: false,
+        },
+      }),
     description:
       "Get all auctions with optional query params finding auctions that belong to a user via their unique userId",
   },
@@ -70,14 +64,14 @@ router.openapi(getAuctionsRoute, async (c) => {
   try {
     const userAuctions = await prisma.auction.findMany({
       where: {
-        sellerId: parseInt(userId),
+        sellerId: userId,
       },
     });
 
     if (includeBidOn === "true") {
       const bidOnAuctions = await prisma.bid.findMany({
         where: {
-          userId: parseInt(userId),
+          userId: userId,
         },
         include: {
           auction: true,
@@ -109,7 +103,6 @@ router.openapi(getAuctionsRoute, async (c) => {
 const getAuctionByIdRoute = createRoute({
   method: "get",
   path: "/{id}",
-
   tags: ["Auction"],
   request: {
     params: ParamsSchema,
@@ -138,7 +131,7 @@ router.openapi(getAuctionByIdRoute, async (c) => {
   const { id } = c.req.valid("param");
   const auction = await prisma.auction.findFirst({
     where: {
-      id: id,
+      id: parseInt(id),
     },
   });
   if (!auction) {

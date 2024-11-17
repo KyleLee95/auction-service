@@ -11,18 +11,8 @@ const createBid = createRoute({
   request: {
     query: z.object({
       userId: z
-        .preprocess((val) => {
-          if (typeof val === "string") {
-            const num = Number(val);
-            if (Number.isInteger(num)) {
-              return num;
-            } else {
-              return NaN;
-            }
-          }
-          return val;
-        }, z.number().int())
-        .openapi({ example: 1 }),
+        .string()
+        .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
       auctionId: z
         .preprocess((val) => {
           if (typeof val === "string") {
@@ -105,7 +95,7 @@ router.openapi(createBid, async (c) => {
         data: {
           placedAt: timeReceived.toISOString(),
           amount: parseFloat(amount),
-          userId: parseInt(userId),
+          userId: userId,
           auctionId: parseInt(auctionId),
         },
       });

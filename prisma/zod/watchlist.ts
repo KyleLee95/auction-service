@@ -14,7 +14,9 @@ import {
 
 export const WatchListModelInput = z
   .object({
-    userId: z.number().int(),
+    userId: z
+      .string()
+      .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
     name: z.string(),
   })
   .openapi("WatchlistInput");

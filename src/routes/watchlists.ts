@@ -16,17 +16,9 @@ const getUserWatchListsRoute = createRoute({
   tags: ["Watchlist"],
   request: {
     query: z.object({
-      userId: z.preprocess((val) => {
-        if (typeof val === "string") {
-          const num = Number(val);
-          if (Number.isInteger(num)) {
-            return num;
-          } else {
-            return NaN;
-          }
-        }
-        return val;
-      }, z.number().int()),
+      userId: z
+        .string()
+        .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
     }),
   },
 
@@ -56,7 +48,7 @@ router.openapi(getUserWatchListsRoute, async (c) => {
   const { userId } = c.req.query();
   const watchlists = await prisma.watchList.findMany({
     where: {
-      userId: parseInt(userId),
+      userId: userId,
     },
     include: {
       categories: { include: { category: true } },
@@ -313,8 +305,10 @@ router.openapi(removeAuctionFromWatchlistRoute, async (c) => {
   const { watchlistId, auctionId } = c.req.query();
   const deletedAuction = await prisma.auctionsOnWatchLists.delete({
     where: {
-      auctionId: parseInt(auctionId),
-      watchlistId: parseInt(watchlistId),
+      watchlistId_auctionId: {
+        auctionId: parseInt(auctionId),
+        watchlistId: parseInt(watchlistId),
+      },
     },
   });
   if (!deletedAuction) {
