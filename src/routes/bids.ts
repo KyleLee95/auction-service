@@ -103,7 +103,7 @@ router.openapi(createBid, async (c) => {
     }
     return c.json(
       {
-        message: `Could not create bid because the most recent bid amount is larger:$${lastBid.amount}.`,
+        error: `Could not create bid because the most recent bid amount is larger:$${lastBid.amount}.`,
       },
       400,
     );

@@ -35,9 +35,7 @@ const getAuctionsRoute = createRoute({
         "application/json": {
           schema: z.object({
             auctions: z.array(AuctionModel),
-            bidOnAuctions: z
-              .array(BidModelWithAuction)
-              .or(z.array(z.unknown())),
+            bidOnAuctions: z.array(BidModelWithAuction).or(z.array(z.any())),
           }),
         },
       },
@@ -131,7 +129,7 @@ router.openapi(getAuctionByIdRoute, async (c) => {
   const { id } = c.req.valid("param");
   const auction = await prisma.auction.findFirst({
     where: {
-      id: parseInt(id),
+      id: id,
     },
   });
   if (!auction) {

@@ -38,6 +38,7 @@ export const AuctionModelInput = z
     closedAt: z.coerce
       .date()
       .optional()
+      .nullish()
       .openapi({ example: new Date(Date.now()).toISOString() }),
     createdAt: z.coerce
       .date()
@@ -77,6 +78,7 @@ export const AuctionModel = z
     closedAt: z.coerce
       .date()
       .optional()
+      .nullish()
       .openapi({ example: new Date(Date.now()).toISOString() }),
     createdAt: z.coerce
       .date()
@@ -104,7 +106,7 @@ export interface CompleteAuction {
   buyerId?: string;
   createdAt: Date;
   updatedAt: Date;
-  closedAt?: Date;
+  closedAt?: Date | null;
   seller: CompleteUser;
   bids: CompleteBid[];
   categories: CompleteCategory[];
@@ -128,7 +130,7 @@ export interface IncludeAuction {
   buyerId?: string;
   createdAt: Date;
   updatedAt: Date;
-  closedAt?: Date;
+  closedAt?: Date | null;
   seller: CompleteUser;
   bids: CompleteBid[];
 }
