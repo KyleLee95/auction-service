@@ -27,6 +27,7 @@ export const AuctionModelInput = z
     isActive: z.boolean().openapi({ example: true }),
     buyerId: z
       .string()
+      .nullish()
       .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
     sellerId: z
       .string()
@@ -66,6 +67,7 @@ export const AuctionModel = z
     isActive: z.boolean().openapi({ example: true }),
     buyerId: z
       .string()
+      .nullish()
       .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" })
       .optional(),
     sellerId: z
@@ -103,7 +105,7 @@ export interface CompleteAuction {
   deleted: boolean;
   flagged: boolean;
   sellerId: string;
-  buyerId?: string;
+  buyerId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   closedAt?: Date | null;
@@ -127,7 +129,7 @@ export interface IncludeAuction {
   deleted: boolean;
   flagged: boolean;
   sellerId: string;
-  buyerId?: string;
+  buyerId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   closedAt?: Date | null;

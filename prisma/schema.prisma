@@ -33,10 +33,10 @@ model Auction {
     endTime       DateTime @default(now())
     quantity      Int      @default(1)
 
-    seller   User   @relation("UserAsSeller", fields: [sellerId], references: [awsId])
+    seller   User    @relation("UserAsSeller", fields: [sellerId], references: [awsId])
     sellerId String
-    buyer    User?  @relation("UserAsBuyer", fields: [buyerId], references: [awsId])
-    buyerId  String // Nullable to support auctions with no buyer yet
+    buyer    User?   @relation("UserAsBuyer", fields: [buyerId], references: [awsId])
+    buyerId  String? // Nullable to support auctions with no buyer yet
 
     isActive        Boolean @default(true)
     buyItNowEnabled Boolean @default(false)
