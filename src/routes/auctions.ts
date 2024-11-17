@@ -7,6 +7,7 @@ import {
   BidModelWithAuction,
 } from "../../prisma/zod";
 import { ParamsSchema } from "./schemas";
+import amqp from "amqplib";
 
 const router = new OpenAPIHono();
 
