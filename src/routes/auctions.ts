@@ -17,8 +17,10 @@ const getAuctionsRoute = createRoute({
   request: {
     query: z
       .object({
-        userId: z.string(),
-        includeBidOn: z.coerce.boolean().optional(),
+        userId: z
+          .string()
+          .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
+        includeBidOn: z.coerce.boolean().optional().openapi({ example: false }),
       })
       .openapi({
         example: {
