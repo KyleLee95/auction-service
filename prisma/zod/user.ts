@@ -17,7 +17,9 @@ export const UserModelInput = z
   .openapi("UserInput");
 export const UserModel = z
   .object({
-    id: z.number().int(),
+    userId: z
+      .string()
+      .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
     name: z.string(),
     isAdmin: z.boolean(),
     suspended: z.boolean(),

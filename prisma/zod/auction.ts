@@ -25,8 +25,12 @@ export const AuctionModelInput = z
       .date()
       .openapi({ example: new Date(Date.now()).toISOString() }),
     isActive: z.boolean().openapi({ example: true }),
-    buyerId: z.number().int().optional().openapi({ example: 1111 }),
-    sellerId: z.number().int().openapi({ example: 1112 }),
+    buyerId: z
+      .string()
+      .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
+    sellerId: z
+      .string()
+      .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
     quantity: z.number().int().openapi({ example: 10 }),
     buyItNowEnabled: z.boolean().openapi({ example: false }),
     deleted: z.boolean().openapi({ example: false }),
@@ -59,8 +63,13 @@ export const AuctionModel = z
       .date()
       .openapi({ example: new Date(Date.now()).toISOString() }),
     isActive: z.boolean().openapi({ example: true }),
-    buyerId: z.number().int().optional().nullable().openapi({ example: 1111 }),
-    sellerId: z.number().int().openapi({ example: 1112 }),
+    buyerId: z
+      .string()
+      .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" })
+      .optional(),
+    sellerId: z
+      .string()
+      .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
     quantity: z.number().int().openapi({ example: 10 }),
     buyItNowEnabled: z.boolean().openapi({ example: false }),
     deleted: z.boolean().openapi({ example: false }),
@@ -68,7 +77,6 @@ export const AuctionModel = z
     closedAt: z.coerce
       .date()
       .optional()
-      .nullable()
       .openapi({ example: new Date(Date.now()).toISOString() }),
     createdAt: z.coerce
       .date()
@@ -92,8 +100,8 @@ export interface CompleteAuction {
   buyItNowEnabled: boolean;
   deleted: boolean;
   flagged: boolean;
-  sellerId: number;
-  buyerId?: number;
+  sellerId: string;
+  buyerId?: string;
   createdAt: Date;
   updatedAt: Date;
   closedAt?: Date;
@@ -116,8 +124,8 @@ export interface IncludeAuction {
   buyItNowEnabled: boolean;
   deleted: boolean;
   flagged: boolean;
-  sellerId: number;
-  buyerId?: number;
+  sellerId: string;
+  buyerId?: string;
   createdAt: Date;
   updatedAt: Date;
   closedAt?: Date;

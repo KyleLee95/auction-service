@@ -23,7 +23,9 @@ export const WatchListModel = z
   .object({
     id: z.number().int(),
     name: z.string(),
-    userId: z.number().int(),
+    userId: z
+      .string()
+      .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
   })
   .openapi("Watchlist");
 
@@ -31,7 +33,9 @@ export const WatchListModelWithAuctionAndCategory = z
   .object({
     id: z.number().int(),
     name: z.string(),
-    userId: z.number().int(),
+    userId: z
+      .string()
+      .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
     auctions: z.array(
       z.object({
         watchlistId: z.number().int(),
@@ -52,7 +56,7 @@ export const WatchListModelWithAuctionAndCategory = z
 export interface IWatchListIncludeAuctionAndCategory {
   id: number;
   name: string;
-  userId: number;
+  userId: string;
   auctions: {
     watchlistId: number;
     auctionId: number;
