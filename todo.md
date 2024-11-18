@@ -76,6 +76,7 @@ Admin Functions:
 - [x] See a list of all items that are currently being bid on by that user
 - [x] Update an item properties, including quantity, description, shipping costs, buy now feature
 - [x] Flag an item as inappropriate or counterfeit
+
 - [ ] Categorize an item based on existing categories or create an new category if needed
 
 - [ ] Delete an item if there are no bids on it, but do not allow an item to be deleted if there are bids on it
@@ -84,6 +85,11 @@ Admin Functions:
   - [x] update that bid if another user outbids that user
 
 ## Alerts
+
+- [ ] Setup AWS Lambda functions to trigger these events.
+
+  - [ ] Pipeline is:
+    - API Request -> SNS + SQS -> Lambda -> SES
 
 - [ ] Alert seller when their item has been bid on with an email
 - [ ] Alert buyer via email when someone has placed a higher bid on the item they had bid current high bid on
@@ -96,10 +102,13 @@ Admin Functions:
 - Implementation of a shopping cart that will store multiple items in it while the user shops on the site
 
 - [ ] Allow item to be place in the shopping cart if the Buy Now feature is selected
+
 - [ ] Place item in a user's cart if they have the winning bid when the auction expires
+
 - [ ] Allow a user to checkout from their cart once there are items in it
 
 - [ ] Add item to cart directly via the Buy Now functionality
+
 - [ ] Checkout of the auction once winning by selecting checkout from the cart
 
 User Functions:
