@@ -1,32 +1,20 @@
-import amqp from "amqplib";
-
-amqp.connect("amqp://localhost", function (error0, connection) {
-  if (error0) {
-    throw error0;
-  }
-  connection.createChannel(function (error1, channel) {
-    if (error1) {
-      throw error1;
-    }
-    const exchange = "auctions";
-    interface MQMessageType {
-      event: string;
-      data: [];
-    }
-    const msg: MQMessageType = {
-      event: "AUCTION_CLOSE",
-      data: [],
-    };
-
-    channel.assertExchange(exchange, "direct", {
-      durable: false,
-    });
-    channel.publish(exchange, Buffer.from(JSON.stringify(msg)));
-    console.log(" [x] Sent %s: '%s'", msg);
-  });
-
-  setTimeout(function () {
-    connection.close();
-    process.exit(0);
-  }, 500);
+import { PublishCommand, SNSClient } from "@aws-sdk/client-sns";
+// The AWS Region can be provided here using the `region` property. If you leave it blank
+// the SDK will default to the region set in your AWS config.
+export const snsClient = new SNSClient({
+  region: "us-east-2",
 });
+
+export const publish = async () => {
+  const test_message = "Hello from auctions service";
+  const test_topicArn = "arn:aws:sns:us-east-2:010928228447:test";
+  const response = await snsClient.send(
+    new PublishCommand({
+      Message: test_message,
+      TopicArn: test_topicArn,
+    }),
+  );
+
+  console.log(response);
+  return response;
+};

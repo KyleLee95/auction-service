@@ -8,14 +8,24 @@ import {
   extendZodWithOpenApi,
 } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
-
+import { publish } from "./mq";
 const app = new OpenAPIHono();
 
 function startServer() {
   const PORT = process.env.PORT || 3000;
   app.use(logger());
-  app.get("/", (c) => {
-    return c.text("Hello Hono!");
+
+  app.post("/", async (c) => {
+    const body = await c.req.json();
+    console.log(c.req);
+    console.log(body);
+    return c.json({}, 200);
+  });
+
+  app.get("/test-aws", async (c) => {
+    const data = await publish();
+    console.log("data", data);
+    return c.json(data);
   });
 
   app.route("/api", apiRouter);
