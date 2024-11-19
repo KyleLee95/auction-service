@@ -203,6 +203,9 @@ const updateAuctionRoute = createRoute({
         "application/json": {
           schema: AuctionModelInput,
         },
+        "multipart/form-data": {
+          schema: AuctionModelInput,
+        },
       },
     },
   },

@@ -21,25 +21,18 @@ const getUserWatchListsRoute = createRoute({
         .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
     }),
   },
-
   responses: {
     200: {
       content: {
         "application/json": {
           schema: z.object({
-            watchlists: z.array(WatchListModelWithAuctionAndCategory),
+            watchlists: z.array(
+              WatchListModelWithAuctionAndCategory.optional(),
+            ),
           }),
         },
       },
       description: "Retrieve all WatchLists",
-    },
-    404: {
-      content: {
-        "application/json": {
-          schema: z.object({ message: z.string() }),
-        },
-      },
-      description: "Not found",
     },
   },
 });
@@ -56,7 +49,49 @@ router.openapi(getUserWatchListsRoute, async (c) => {
     },
   });
   if (!watchlists.length) {
-    return c.json({ message: "No WatchLists Found" }, 404);
+    return c.json({ watchlists: [] }, 200);
+  }
+  return c.json({ watchlists }, 200);
+});
+
+const getWatchListsByIdRoute = createRoute({
+  method: "get",
+  path: "/",
+  tags: ["Watchlist"],
+  request: {
+    query: z.object({
+      watchlistId: z.string().openapi({ example: "1" }),
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            watchlists: z.array(
+              WatchListModelWithAuctionAndCategory.optional(),
+            ),
+          }),
+        },
+      },
+      description: "Retrieve all WatchLists",
+    },
+  },
+});
+
+router.openapi(getWatchListsByIdRoute, async (c) => {
+  const { watchlistId } = c.req.query();
+  const watchlists = await prisma.watchList.findMany({
+    where: {
+      id: parseInt(watchlistId),
+    },
+    include: {
+      categories: { include: { category: true } },
+      auctions: { include: { auction: true } },
+    },
+  });
+  if (!watchlists.length) {
+    return c.json({ watchlists: [] }, 200);
   }
   return c.json({ watchlists }, 200);
 });
