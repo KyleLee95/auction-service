@@ -51,8 +51,8 @@ const searchAuctionsRoute = createRoute({
 });
 
 router.openapi(searchAuctionsRoute, async (c) => {
-  const { term, category } = c.req.query();
-  if (!term && !category) {
+  const { term } = c.req.query();
+  if (!term) {
     return c.json({ error: "A query term is required is required" }, 500);
   }
 
@@ -62,6 +62,13 @@ router.openapi(searchAuctionsRoute, async (c) => {
         title: {
           contains: term,
           mode: "insensitive",
+        },
+      },
+      include: {
+        categories: {
+          where: {
+            category: { name: term },
+          },
         },
       },
     });
