@@ -16,7 +16,7 @@ model User {
     isAdmin     Boolean     @default(false)
     suspended   Boolean     @default(false)
     bids        Bid[]
-    watchlist   WatchList[]
+    watchlist   Watchlist[]
     createdAt   DateTime    @default(now())
     updatedAt   DateTime    @updatedAt
     items       Auction[]   @relation("UserAsSeller")
@@ -24,31 +24,28 @@ model User {
 }
 
 model Auction {
-    id            Int      @id @default(autoincrement())
-    title         String
-    description   String
-    startPrice    Float    @default(0.00)
-    shippingPrice Float    @default(0.00)
-    startTime     DateTime @default(now())
-    endTime       DateTime @default(now())
-    quantity      Int      @default(1)
-
-    seller   User    @relation("UserAsSeller", fields: [sellerId], references: [awsId])
-    sellerId String
-    buyer    User?   @relation("UserAsBuyer", fields: [buyerId], references: [awsId])
-    buyerId  String? // Nullable to support auctions with no buyer yet
-
-    isActive        Boolean @default(true)
-    buyItNowEnabled Boolean @default(false)
-    deleted         Boolean @default(false)
-    flagged         Boolean @default(false)
-
-    closedAt   DateTime?
-    bids       Bid[]
-    categories Category[]             @relation("AuctionCategories")
-    createdAt  DateTime               @default(now())
-    updatedAt  DateTime               @default(now()) @updatedAt
-    watchlists AuctionsOnWatchLists[]
+    id              Int                    @id @default(autoincrement())
+    title           String
+    description     String
+    startPrice      Float                  @default(0.00)
+    shippingPrice   Float                  @default(0.00)
+    startTime       DateTime               @default(now())
+    endTime         DateTime               @default(now())
+    quantity        Int                    @default(1)
+    seller          User                   @relation("UserAsSeller", fields: [sellerId], references: [awsId])
+    sellerId        String
+    buyer           User?                  @relation("UserAsBuyer", fields: [buyerId], references: [awsId])
+    buyerId         String? // Nullable to support auctions with no buyer yet
+    isActive        Boolean                @default(true)
+    buyItNowEnabled Boolean                @default(false)
+    deleted         Boolean                @default(false)
+    flagged         Boolean                @default(false)
+    closedAt        DateTime?
+    createdAt       DateTime               @default(now())
+    updatedAt       DateTime               @default(now()) @updatedAt
+    bids            Bid[]
+    watchlists      AuctionsOnWatchlists[]
+    categories      CategoriesOnAuctions[]
 }
 
 model Bid {
@@ -62,23 +59,32 @@ model Bid {
 }
 
 model Category {
-    id         Int                      @id @default(autoincrement())
-    name       String                   @unique
-    auctions   Auction[]                @relation("AuctionCategories")
-    watchlists CategoriesOnWatchLists[]
+    id                   Int                      @id @default(autoincrement())
+    name                 String                   @unique
+    watchlists           CategoriesOnWatchlists[]
+    CategoriesOnAuctions CategoriesOnAuctions[]
 }
 
-model WatchList {
+model Watchlist {
     id         Int                      @id @default(autoincrement())
     name       String                   @default("My Watchlist")
     user       User                     @relation(fields: [userId], references: [awsId])
     userId     String
-    categories CategoriesOnWatchLists[]
-    auctions   AuctionsOnWatchLists[]
+    categories CategoriesOnWatchlists[]
+    auctions   AuctionsOnWatchlists[]
 }
 
-model AuctionsOnWatchLists {
-    watchlist   WatchList @relation(fields: [watchlistId], references: [id])
+model CategoriesOnAuctions {
+    auction    Auction  @relation(fields: [auctionId], references: [id])
+    auctionId  Int
+    category   Category @relation(fields: [categoryId], references: [id])
+    categoryId Int
+
+    @@id([auctionId, categoryId])
+}
+
+model AuctionsOnWatchlists {
+    watchlist   Watchlist @relation(fields: [watchlistId], references: [id])
     watchlistId Int
     auction     Auction   @relation(fields: [auctionId], references: [id])
     auctionId   Int
@@ -86,8 +92,8 @@ model AuctionsOnWatchLists {
     @@id([watchlistId, auctionId])
 }
 
-model CategoriesOnWatchLists {
-    watchlist   WatchList @relation(fields: [watchlistId], references: [id])
+model CategoriesOnWatchlists {
+    watchlist   Watchlist @relation(fields: [watchlistId], references: [id])
     watchlistId Int
     category    Category  @relation(fields: [categoryId], references: [id])
     categoryId  Int

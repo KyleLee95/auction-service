@@ -39,7 +39,7 @@ const getUserWatchListsRoute = createRoute({
 
 router.openapi(getUserWatchListsRoute, async (c) => {
   const { userId } = c.req.query();
-  const watchlists = await prisma.watchList.findMany({
+  const watchlists = await prisma.watchlist.findMany({
     where: {
       userId: userId,
     },
@@ -81,7 +81,7 @@ const getWatchListsByIdRoute = createRoute({
 
 router.openapi(getWatchListsByIdRoute, async (c) => {
   const { watchlistId } = c.req.query();
-  const watchlists = await prisma.watchList.findMany({
+  const watchlists = await prisma.watchlist.findMany({
     where: {
       id: parseInt(watchlistId),
     },
@@ -135,7 +135,7 @@ const updateUserWatchListsRoute = createRoute({
 router.openapi(updateUserWatchListsRoute, async (c) => {
   const { id } = c.req.query();
   const body = await c.req.json();
-  const updatedWatchlist = await prisma.watchList.update({
+  const updatedWatchlist = await prisma.watchlist.update({
     where: { id: parseInt(id) },
     data: {
       ...body,
@@ -239,7 +239,7 @@ router.openapi(addAuctionToWatchlistRoute, async (c) => {
     return c.json({ message: "Failed to add auction to watchlist" }, 500);
   }
 
-  const updatedWatchlist = await prisma.watchList.findFirst({
+  const updatedWatchlist = await prisma.watchlist.findFirst({
     where: { id: parseInt(body.watchlistId) },
     include: {
       categories: { include: { category: true } },
@@ -338,7 +338,7 @@ const removeAuctionFromWatchlistRoute = createRoute({
 
 router.openapi(removeAuctionFromWatchlistRoute, async (c) => {
   const { watchlistId, auctionId } = c.req.query();
-  const deletedAuction = await prisma.auctionsOnWatchLists.delete({
+  const deletedAuction = await prisma.auctionsOnWatchlists.delete({
     where: {
       watchlistId_auctionId: {
         auctionId: parseInt(auctionId),
@@ -350,7 +350,7 @@ router.openapi(removeAuctionFromWatchlistRoute, async (c) => {
     return c.json({ message: "Failed to add auction to watchlist" }, 500);
   }
 
-  const updatedWatchlist = await prisma.watchList.findFirst({
+  const updatedWatchlist = await prisma.watchlist.findFirst({
     where: { id: parseInt(watchlistId) },
     include: {
       categories: { include: { category: true } },
