@@ -116,7 +116,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
       );
     }
 
-    const matchKeywordAndCategory = await prisma.auction.findMany({
+    const termMatchesKeywordAndCategory = await prisma.auction.findMany({
       where: {
         title: {
           contains: term,
@@ -140,7 +140,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
 
     return c.json(
       {
-        auctions: matchKeywordAndCategory,
+        auctions: termMatchesKeywordAndCategory,
       },
       200,
     );
