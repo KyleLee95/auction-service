@@ -18,10 +18,12 @@ const searchAuctionsRoute = createRoute({
     query: z
       .object({
         term: z.string().optional(),
+        category: z.string().optional(),
       })
       .openapi({
         example: {
           term: "rayban sunglasses",
+          category: "<$100",
         },
       }),
     description:
@@ -51,17 +53,80 @@ const searchAuctionsRoute = createRoute({
 });
 
 router.openapi(searchAuctionsRoute, async (c) => {
-  const { term } = c.req.query();
-  if (!term) {
-    return c.json({ error: "A query term is required is required" }, 500);
+  const { term, category } = c.req.query();
+  if (!term && !category) {
+    return c.json(
+      { error: "A query term or category name is required is required" },
+      500,
+    );
   }
 
   try {
-    const keywordInTitleResults = await prisma.auction.findMany({
+    if (term && !category) {
+      const keywordInTitleResults = await prisma.auction.findMany({
+        where: {
+          title: {
+            contains: term,
+            mode: "insensitive",
+          },
+        },
+        include: {
+          categories: {
+            where: {
+              category: { name: term },
+            },
+          },
+        },
+      });
+
+      return c.json(
+        {
+          auctions: keywordInTitleResults,
+        },
+        200,
+      );
+    }
+
+    if (!term && category) {
+      const taggedWithCategory = await prisma.auction.findMany({
+        where: {
+          title: {
+            contains: term,
+            mode: "insensitive",
+          },
+          categories: {
+            some: {
+              category: { name: { contains: term, mode: "insensitive" } },
+            },
+          },
+        },
+        include: {
+          categories: {
+            where: {
+              category: { name: term },
+            },
+          },
+        },
+      });
+      return c.json(
+        {
+          auctions: taggedWithCategory,
+        },
+        200,
+      );
+    }
+
+    const matchKeywordAndCategory = await prisma.auction.findMany({
       where: {
         title: {
           contains: term,
           mode: "insensitive",
+        },
+
+        categories: {
+          some: {
+            category: { name: { contains: term, mode: "insensitive" } },
+          },
         },
       },
       include: {
@@ -75,7 +140,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
 
     return c.json(
       {
-        auctions: keywordInTitleResults,
+        auctions: matchKeywordAndCategory,
       },
       200,
     );
