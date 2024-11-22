@@ -18,7 +18,7 @@ const getCategorysRoute = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            data: z.array(CategoryModel),
+            categories: z.array(CategoryModel),
           }),
         },
       },
@@ -31,7 +31,7 @@ router.openapi(getCategorysRoute, async (c) => {
   const category = await prisma.category.findMany();
   return c.json(
     {
-      data: category,
+      categories: category,
     },
     200,
   );
@@ -152,7 +152,7 @@ const updateCategoryRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: z.object({ category: z.array(CategoryModel) }),
+          schema: z.object({ categories: z.array(CategoryModel) }),
         },
       },
       description: "Unable to update category tag",
@@ -181,7 +181,7 @@ router.openapi(updateCategoryRoute, async (c) => {
     return c.json({ message: "unable to update category tag" }, 422);
   }
 
-  return c.json({ category: [updatedCategory] }, 200);
+  return c.json({ categories: [updatedCategory] }, 200);
 });
 
 export { router as categoriesRouter };

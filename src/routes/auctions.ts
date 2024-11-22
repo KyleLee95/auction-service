@@ -275,6 +275,10 @@ router.openapi(getAuctionByIdRoute, async (c) => {
     where: {
       id: id,
     },
+    include: {
+      categories: true,
+      bids: true,
+    },
   });
   if (!auction) {
     return c.json({ message: "Could not find auction" }, 404);
