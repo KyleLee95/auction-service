@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { faker } from "@faker-js/faker";
 
+import { exec } from "child_process";
+import { promisify } from "util";
 const prisma = new PrismaClient();
 const ADMIN_USERID: string = process.env.ADMIN_USERID; // Replace with the desired admin user UUID
 const CATEGORY_NAMES = [
@@ -12,20 +14,45 @@ const CATEGORY_NAMES = [
   "Collectibles",
 ];
 
+const execAsync = promisify(exec);
+
+async function runMigrations() {
+  console.log("Running migrations...");
+  try {
+    await execAsync("npx prisma migrate deploy");
+    console.log("Migrations applied successfully!");
+  } catch (error) {
+    console.error("Error running migrations:", error);
+    throw error;
+  }
+}
+
 async function clearDatabase() {
-  console.log("Clearing database...");
+  console.log("Dropping and recreating tables...");
 
-  // Delete records in the correct order to avoid foreign key violations
-  await prisma.bid.deleteMany({});
-  await prisma.auctionsOnWatchlists.deleteMany({});
-  await prisma.categoriesOnAuctions.deleteMany({});
-  await prisma.categoriesOnWatchlists.deleteMany({});
-  await prisma.watchlist.deleteMany({});
-  await prisma.auction.deleteMany({});
-  await prisma.category.deleteMany({});
-  await prisma.user.deleteMany({});
+  // Drop all tables
+  await prisma.$executeRawUnsafe(`
+    DO $$
+    BEGIN
+      EXECUTE (
+        SELECT string_agg('DROP TABLE IF EXISTS "' || tablename || '" CASCADE', '; ')
+        FROM pg_tables
+        WHERE schemaname = 'public'
+      );
+    END $$;
+  `);
 
-  console.log("Database cleared!");
+  console.log("Tables dropped!");
+
+  // Run migrations to recreate the schema
+  console.log("Recreating tables...");
+  await prisma.$executeRawUnsafe(`
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp"; -- Example for extensions
+  `);
+  await prisma.$disconnect();
+  await runMigrations();
+
+  console.log("Database reset complete!");
 }
 
 async function main() {
@@ -55,7 +82,7 @@ async function main() {
 
   console.log("Seeding 10 auctions for admin user");
   // Create 10 auctions for the admin user
-  for (let j = 1; j <= 10; j++) {
+  for (let j = 1; j <= 30; j++) {
     const auction = await prisma.auction.create({
       data: {
         title: faker.commerce.productName(),
@@ -65,6 +92,8 @@ async function main() {
         startTime: faker.date.recent({
           days: Math.floor(Math.random() * 6) + 1,
         }),
+        buyItNowEnabled: faker.datatype.boolean(),
+        isActive: faker.datatype.boolean(),
         endTime: faker.date.future({ years: 1, refDate: Date.now() }),
         quantity: faker.number.int({ min: 1, max: 5 }),
         sellerId: ADMIN_USERID,
@@ -81,7 +110,7 @@ async function main() {
     });
 
     // Add between 0 and 5 bids for each auction
-    const bidCount = faker.number.int({ min: 0, max: 5 });
+    const bidCount = faker.number.int({ min: 0, max: 10 });
     for (let k = 0; k < bidCount; k++) {
       // Select a random existing user
       const randomUser = await prisma.user.findFirst({
