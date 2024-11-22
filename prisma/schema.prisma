@@ -60,7 +60,8 @@ model Bid {
 
 model Category {
     id                   Int                      @id @default(autoincrement())
-    name                 String                   @unique
+    displayName          String                   @unique
+    paramName            String                   @unique
     watchlists           CategoriesOnWatchlists[]
     CategoriesOnAuctions CategoriesOnAuctions[]
 }

@@ -73,7 +73,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
         include: {
           categories: {
             where: {
-              category: { name: term },
+              category: { name: { contains: term } },
             },
           },
         },
@@ -90,22 +90,14 @@ router.openapi(searchAuctionsRoute, async (c) => {
     if (!term && category) {
       const taggedWithCategory = await prisma.auction.findMany({
         where: {
-          title: {
-            contains: term,
-            mode: "insensitive",
-          },
           categories: {
             some: {
-              category: { name: { contains: term, mode: "insensitive" } },
+              category: { name: { contains: category, mode: "insensitive" } },
             },
           },
         },
         include: {
-          categories: {
-            where: {
-              category: { name: term },
-            },
-          },
+          categories: true,
         },
       });
       return c.json(
