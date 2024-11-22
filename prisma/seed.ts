@@ -4,14 +4,17 @@ import { faker } from "@faker-js/faker";
 import { exec } from "child_process";
 import { promisify } from "util";
 const prisma = new PrismaClient();
-const ADMIN_USERID: string = process.env.ADMIN_USERID; // Replace with the desired admin user UUID
+const ADMIN_USERID: string = process.env.ADMIN_USERID || ""; // Replace with the desired admin user UUID
 const CATEGORY_NAMES = [
-  "Autos",
-  "Clothing, Shoes & Accessories",
-  "Electronics",
-  "Sporting Goods",
-  "Jewelry & Watches",
-  "Collectibles",
+  { displayName: "Autos", paramName: "autos" },
+  {
+    displayName: "Clothing, Shoes & Accessories",
+    paramName: "clothing-shoes-accessories",
+  },
+  { displayName: "Electronics", paramName: "electronics" },
+  { displayName: "Sporting Goods", paramName: "sporting-goods" },
+  { displayName: "Jewelry & Watches", paramName: "jewelry-watches" },
+  { displayName: "Collectibles", paramName: "collectibles" },
 ];
 
 const execAsync = promisify(exec);
@@ -73,9 +76,12 @@ async function main() {
 
   console.log("Creating example categories");
   const categories = [];
-  for (const name of CATEGORY_NAMES) {
+  for (const { displayName, paramName } of CATEGORY_NAMES) {
     const category = await prisma.category.create({
-      data: { name },
+      data: {
+        displayName,
+        paramName,
+      },
     });
     categories.push(category);
   }

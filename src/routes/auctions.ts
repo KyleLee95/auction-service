@@ -18,7 +18,15 @@ const searchAuctionsRoute = createRoute({
     query: z
       .object({
         term: z.string().optional(),
-        category: z.string().optional(),
+        category: z
+          .string()
+          .transform((string) => {
+            return string
+              .toLowerCase() // Convert to lowercase
+              .replace(/[^\w\s]/g, "") // Remove all punctuation
+              .replace(/\s+/g, "-"); // Replace spaces with hyphens
+          })
+          .optional(),
       })
       .openapi({
         example: {
@@ -73,7 +81,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
         include: {
           categories: {
             where: {
-              category: { name: { contains: term } },
+              category: { paramName: { contains: term } },
             },
           },
         },
@@ -92,7 +100,9 @@ router.openapi(searchAuctionsRoute, async (c) => {
         where: {
           categories: {
             some: {
-              category: { name: { contains: category, mode: "insensitive" } },
+              category: {
+                paramName: { contains: category, mode: "insensitive" },
+              },
             },
           },
         },
@@ -117,14 +127,14 @@ router.openapi(searchAuctionsRoute, async (c) => {
 
         categories: {
           some: {
-            category: { name: { contains: term, mode: "insensitive" } },
+            category: { paramName: { contains: term, mode: "insensitive" } },
           },
         },
       },
       include: {
         categories: {
           where: {
-            category: { name: term },
+            category: { paramName: term },
           },
         },
       },
