@@ -6,15 +6,15 @@ import { promisify } from "util";
 const prisma = new PrismaClient();
 const ADMIN_USERID: string = process.env.ADMIN_USERID || ""; // Replace with the desired admin user UUID
 const CATEGORY_NAMES = [
-  { displayName: "Autos", paramName: "autos" },
+  { label: "Autos", value: "autos" },
   {
-    displayName: "Clothing, Shoes & Accessories",
-    paramName: "clothing-shoes-accessories",
+    label: "Clothing, Shoes & Accessories",
+    value: "clothing-shoes-accessories",
   },
-  { displayName: "Electronics", paramName: "electronics" },
-  { displayName: "Sporting Goods", paramName: "sporting-goods" },
-  { displayName: "Jewelry & Watches", paramName: "jewelry-watches" },
-  { displayName: "Collectibles", paramName: "collectibles" },
+  { label: "Electronics", value: "electronics" },
+  { label: "Sporting Goods", value: "sporting-goods" },
+  { label: "Jewelry & Watches", value: "jewelry-watches" },
+  { label: "Collectibles", value: "collectibles" },
 ];
 
 const execAsync = promisify(exec);
@@ -76,11 +76,11 @@ async function main() {
 
   console.log("Creating example categories");
   const categories = [];
-  for (const { displayName, paramName } of CATEGORY_NAMES) {
+  for (const { label, value } of CATEGORY_NAMES) {
     const category = await prisma.category.create({
       data: {
-        displayName,
-        paramName,
+        label,
+        value,
       },
     });
     categories.push(category);

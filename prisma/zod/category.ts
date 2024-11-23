@@ -8,23 +8,23 @@ import {
 
 export const CategoryModelInput = z
   .object({
-    displayName: z.string(),
-    paramName: z.string(),
+    label: z.string(),
+    value: z.string(),
   })
   .openapi("CategoryInput");
 
 export const CategoryModel = z
   .object({
     id: z.number().int(),
-    displayName: z.string(),
-    paramName: z.string(),
+    label: z.string(),
+    value: z.string(),
   })
   .openapi("Category");
 
 export interface IncludeCategory {
   id: number;
-  displayName: string;
-  paramName: string;
+  label: string;
+  value: string;
 }
 
 export interface CompleteCategory extends z.infer<typeof CategoryModel> {

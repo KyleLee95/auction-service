@@ -81,7 +81,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
         include: {
           categories: {
             where: {
-              category: { paramName: { contains: term } },
+              category: { label: { contains: term } },
             },
           },
         },
@@ -101,7 +101,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
           categories: {
             some: {
               category: {
-                paramName: { contains: category, mode: "insensitive" },
+                value: { contains: category, mode: "insensitive" },
               },
             },
           },

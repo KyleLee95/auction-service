@@ -90,7 +90,7 @@ const createCategoryRoute = createRoute({
     body: {
       content: {
         "application/json": {
-          schema: CategoryModel,
+          schema: CategoryModelInput,
         },
       },
     },
