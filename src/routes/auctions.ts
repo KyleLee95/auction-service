@@ -7,8 +7,9 @@ import {
   BidModelWithAuction,
 } from "../../prisma/zod";
 import { ParamsSchema } from "./schemas";
-
 const router = new OpenAPIHono();
+const ASC: string = "asc";
+const DESC: string = "desc";
 
 const searchAuctionsRoute = createRoute({
   method: "get",
@@ -27,11 +28,13 @@ const searchAuctionsRoute = createRoute({
               .replace(/\s+/g, "-"); // Replace spaces with hyphens
           })
           .optional(),
+        order: z.enum(["asc", "desc"]).default("asc"),
       })
       .openapi({
         example: {
           term: "rayban sunglasses",
           category: "<$100",
+          order: "asc",
         },
       }),
     description:
@@ -61,7 +64,7 @@ const searchAuctionsRoute = createRoute({
 });
 
 router.openapi(searchAuctionsRoute, async (c) => {
-  const { term, category } = c.req.query();
+  const { term, category, order } = c.req.query();
   if (!term && !category) {
     return c.json(
       { error: "A query term or category name is required is required" },
@@ -72,6 +75,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
   try {
     if (term && !category) {
       const keywordInTitleResults = await prisma.auction.findMany({
+        orderBy: { endTime: order === DESC ? "desc" : "asc" },
         where: {
           title: {
             contains: term,
@@ -109,6 +113,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
         include: {
           categories: true,
         },
+        orderBy: { endTime: order === DESC ? "desc" : "asc" },
       });
       return c.json(
         {
@@ -127,17 +132,18 @@ router.openapi(searchAuctionsRoute, async (c) => {
 
         categories: {
           some: {
-            category: { paramName: { contains: term, mode: "insensitive" } },
+            category: { value: { contains: term, mode: "insensitive" } },
           },
         },
       },
       include: {
         categories: {
           where: {
-            category: { paramName: term },
+            category: { value: term },
           },
         },
       },
+      orderBy: { endTime: order === DESC ? "desc" : "asc" },
     });
 
     return c.json(
@@ -163,11 +169,13 @@ const getAuctionsRoute = createRoute({
           .string()
           .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
         includeBidOn: z.coerce.boolean().optional().openapi({ example: false }),
+        order: z.enum(["asc", "desc"]).default("asc"),
       })
       .openapi({
         example: {
           userId: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e",
           includeBidOn: false,
+          order: "asc",
         },
       }),
     description:
@@ -198,7 +206,7 @@ const getAuctionsRoute = createRoute({
 });
 
 router.openapi(getAuctionsRoute, async (c) => {
-  const { userId, includeBidOn } = c.req.query();
+  const { userId, includeBidOn, order } = c.req.query();
   if (!userId) {
     return c.json({ error: "userId is required" }, 500);
   }
@@ -208,6 +216,7 @@ router.openapi(getAuctionsRoute, async (c) => {
       where: {
         sellerId: userId,
       },
+      orderBy: { endTime: order === ASC ? "asc" : "desc" },
     });
 
     if (includeBidOn === "true") {

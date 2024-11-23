@@ -11,7 +11,7 @@
     "@faker-js/faker": "^9.2.0",
     "@hono/node-server": "^1.13.7",
     "@hono/swagger-ui": "^0.4.1",
-    "@hono/zod-openapi": "^0.17.0",
+    "@hono/zod-openapi": "^0.18.0",
     "@prisma/client": "^5.22.0",
     "@types/amqplib": "^0.10.5",
     "aws-sdk": "^2.1692.0",
