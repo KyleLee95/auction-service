@@ -17,7 +17,8 @@ COPY . .
 RUN npx prisma generate
 
 # Expose the service's port
-EXPOSE 3000
+EXPOSE 3000/tcp
+EXPOSE 3000/udp
 
 # Start the application
 CMD ["npm", "run", "start"]
