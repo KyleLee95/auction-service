@@ -46,8 +46,8 @@ const searchAuctionsRoute = createRoute({
           term: "rayban sunglasses",
           category: ["sunglasses", "rayban"],
           order: "asc",
-          minPrice: 50.0,
-          maxPrice: 100.0,
+          minPrice: 0.0,
+          maxPrice: 100000.0,
         },
       }),
     description:
@@ -78,8 +78,8 @@ const searchAuctionsRoute = createRoute({
 
 router.openapi(searchAuctionsRoute, async (c) => {
   const { term, category, order, maxPrice, minPrice } = c.req.query();
-  const categoriesToFilterBy = c.req.queries("category");
 
+  const categoriesToFilterBy = c.req.queries("category");
   if (!term && !category) {
     return c.json(
       { error: "A query term or category name is required is required" },
@@ -100,7 +100,6 @@ router.openapi(searchAuctionsRoute, async (c) => {
             lt: parseInt(maxPrice),
             gt: parseInt(minPrice),
           },
-          categories: { some: { category: { value: { in: [term] } } } },
         },
         include: {
           categories: true,
@@ -151,7 +150,6 @@ router.openapi(searchAuctionsRoute, async (c) => {
           contains: term,
           mode: "insensitive",
         },
-
         categories: {
           some: {
             category: { value: { in: categoriesToFilterBy } },
@@ -159,11 +157,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
         },
       },
       include: {
-        categories: {
-          where: {
-            category: { value: term },
-          },
-        },
+        categories: true,
       },
       orderBy: { endTime: order === DESC ? "desc" : "asc" },
     });
