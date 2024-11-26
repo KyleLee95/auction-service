@@ -20,21 +20,27 @@ const searchAuctionsRoute = createRoute({
       .object({
         term: z.string().optional(),
         category: z
-          .string()
-          .transform((string) => {
-            return string
-              .toLowerCase() // Convert to lowercase
-              .replace(/[^\w\s]/g, "") // Remove all punctuation
-              .replace(/\s+/g, "-"); // Replace spaces with hyphens
-          })
+          .array(
+            z.string().transform((string) => {
+              return string
+                .toLowerCase() // Convert to lowercase
+                .replace(/[^\w\s]/g, "") // Remove all punctuation
+                .replace(/\s+/g, "-"); // Replace spaces with hyphens
+            }),
+          )
+          .default(["autos", "sports"])
           .optional(),
         order: z.enum(["asc", "desc"]).default("asc"),
+        minPrice: z.coerce.number().optional().default(1000000),
+        maxPrice: z.coerce.number().optional().default(0),
       })
       .openapi({
         example: {
           term: "rayban sunglasses",
-          category: "<$100",
+          category: ["sunglasses", "rayban"],
           order: "asc",
+          minPrice: 50,
+          maxPrice: 100,
         },
       }),
     description:
@@ -64,7 +70,7 @@ const searchAuctionsRoute = createRoute({
 });
 
 router.openapi(searchAuctionsRoute, async (c) => {
-  const { term, category, order } = c.req.query();
+  const { term, category, order, maxPrice, minPrice } = c.req.query();
   if (!term && !category) {
     return c.json(
       { error: "A query term or category name is required is required" },
@@ -80,6 +86,10 @@ router.openapi(searchAuctionsRoute, async (c) => {
           title: {
             contains: term,
             mode: "insensitive",
+          },
+          startPrice: {
+            lt: parseInt(maxPrice),
+            gt: parseInt(minPrice),
           },
         },
         include: {

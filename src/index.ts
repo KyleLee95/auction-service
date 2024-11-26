@@ -15,11 +15,15 @@ function startServer() {
   const PORT = process.env.PORT || 3000;
   app.use(logger());
 
+  app.get("/", (c) => {
+    return c.json({ hello: "world" }, 200);
+  });
+
   app.post("/", async (c) => {
     const body = await c.req.json();
     console.log(c.req);
     console.log(body);
-    return c.json({}, 200);
+    return c.json({ hello: "world" }, 200);
   });
 
   app.get("/test-aws", async (c) => {
