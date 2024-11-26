@@ -28,19 +28,26 @@ const searchAuctionsRoute = createRoute({
                 .replace(/\s+/g, "-"); // Replace spaces with hyphens
             }),
           )
-          .default(["autos", "sports"])
+          .or(
+            z.string().transform((string) => {
+              return string
+                .toLowerCase() // Convert to lowercase
+                .replace(/[^\w\s]/g, "") // Remove all punctuation
+                .replace(/\s+/g, "-"); // Replace spaces with hyphens
+            }),
+          )
           .optional(),
         order: z.enum(["asc", "desc"]).default("asc"),
-        minPrice: z.coerce.number().optional().default(1000000),
-        maxPrice: z.coerce.number().optional().default(0),
+        minPrice: z.coerce.number().optional().default(0),
+        maxPrice: z.coerce.number().optional().default(10000),
       })
       .openapi({
         example: {
           term: "rayban sunglasses",
           category: ["sunglasses", "rayban"],
           order: "asc",
-          minPrice: 50,
-          maxPrice: 100,
+          minPrice: 50.0,
+          maxPrice: 100.0,
         },
       }),
     description:
@@ -71,6 +78,8 @@ const searchAuctionsRoute = createRoute({
 
 router.openapi(searchAuctionsRoute, async (c) => {
   const { term, category, order, maxPrice, minPrice } = c.req.query();
+  const categoriesToFilterBy = c.req.queries("category");
+
   if (!term && !category) {
     return c.json(
       { error: "A query term or category name is required is required" },
@@ -91,13 +100,10 @@ router.openapi(searchAuctionsRoute, async (c) => {
             lt: parseInt(maxPrice),
             gt: parseInt(minPrice),
           },
+          categories: { some: { category: { value: { in: [term] } } } },
         },
         include: {
-          categories: {
-            where: {
-              category: { label: { contains: term } },
-            },
-          },
+          categories: true,
         },
       });
 
@@ -110,12 +116,18 @@ router.openapi(searchAuctionsRoute, async (c) => {
     }
 
     if (!term && category) {
+      console.log("min", parseFloat(minPrice), "max", parseFloat(maxPrice));
+      console.log("categoriesToFilterBy?", categoriesToFilterBy);
       const taggedWithCategory = await prisma.auction.findMany({
         where: {
+          startPrice: {
+            lt: parseFloat(maxPrice),
+            gt: parseFloat(minPrice),
+          },
           categories: {
             some: {
               category: {
-                value: { contains: category, mode: "insensitive" },
+                value: { in: categoriesToFilterBy },
               },
             },
           },
@@ -142,7 +154,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
 
         categories: {
           some: {
-            category: { value: { contains: term, mode: "insensitive" } },
+            category: { value: { in: categoriesToFilterBy } },
           },
         },
       },
