@@ -5,10 +5,6 @@ import { CategoryModel, CategoryModelInput } from "../../prisma/zod";
 import { ParamsSchema } from "./schemas";
 const router = new OpenAPIHono();
 
-/*
-This module contains routes related to querying for auctions in relation to category tags.
-*/
-
 const getCategorysRoute = createRoute({
   method: "get",
   path: "/",

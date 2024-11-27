@@ -39,13 +39,15 @@ const searchAuctionsRoute = createRoute({
           .optional(),
         order: z.enum(["asc", "desc"]).default("asc"),
         maxPrice: z.coerce.number().optional().default(10000),
+        minPrice: z.coerce.number().optional().default(0),
       })
       .openapi({
         example: {
           term: "rayban sunglasses",
           categories: ["sunglasses", "rayban"],
           order: "asc",
-          maxPrice: 100000.0,
+          maxPrice: 10000.0,
+          minPrice: 0.0,
         },
       }),
     description:
@@ -75,7 +77,7 @@ const searchAuctionsRoute = createRoute({
 });
 
 router.openapi(searchAuctionsRoute, async (c) => {
-  const { term, categories, order, maxPrice } = c.req.query();
+  const { term, categories, order, maxPrice, minPrice } = c.req.query();
   const categoriesToFilterBy = c.req.queries("categories");
 
   if (!term && !categories) {
@@ -90,25 +92,21 @@ router.openapi(searchAuctionsRoute, async (c) => {
       const keywordInTitleResults = await prisma.auction.findMany({
         orderBy: { endTime: order === DESC ? "desc" : "asc" },
         where: {
+          isActive: true,
           title: {
             contains: term,
             mode: "insensitive",
           },
           OR: [
             {
-              startPrice: {
-                lte: parseInt(maxPrice),
-              },
-            },
-            {
               buyItNowPrice: {
-                lte: parseInt(maxPrice),
+                lte: parseFloat(maxPrice),
                 gt: 0,
               },
             },
             {
               bids: {
-                some: { amount: { lte: parseInt(maxPrice) } },
+                some: { amount: { lte: parseFloat(maxPrice) } },
               },
             },
           ],
@@ -138,13 +136,9 @@ router.openapi(searchAuctionsRoute, async (c) => {
           isActive: true,
           OR: [
             {
-              startPrice: {
-                lte: parseFloat(maxPrice),
-              },
-            },
-            {
               buyItNowPrice: {
                 lte: parseFloat(maxPrice),
+                gt: 0,
               },
             },
             {
@@ -157,17 +151,19 @@ router.openapi(searchAuctionsRoute, async (c) => {
               },
             },
           ],
-          AND: {
-            categories: {
-              some: {
-                category: {
-                  value: {
-                    in: categoriesToFilterBy,
+          AND: [
+            {
+              categories: {
+                some: {
+                  category: {
+                    value: {
+                      in: categoriesToFilterBy,
+                    },
                   },
                 },
               },
             },
-          },
+          ],
         },
         orderBy: { endTime: order === DESC ? "desc" : "asc" },
         include: {
@@ -195,10 +191,15 @@ router.openapi(searchAuctionsRoute, async (c) => {
     const termMatchesKeywordAndCategory = await prisma.auction.findMany({
       where: {
         isActive: true,
+        title: {
+          contains: term,
+          mode: "insensitive",
+        },
         OR: [
           {
             buyItNowPrice: {
               lte: parseFloat(maxPrice),
+              gt: 0,
             },
           },
           {
@@ -211,15 +212,19 @@ router.openapi(searchAuctionsRoute, async (c) => {
             },
           },
         ],
-        categories: {
-          some: {
-            category: {
-              value: {
-                in: categoriesToFilterBy,
+        AND: [
+          {
+            categories: {
+              some: {
+                category: {
+                  value: {
+                    in: categoriesToFilterBy,
+                  },
+                },
               },
             },
           },
-        },
+        ],
       },
       include: {
         bids: {
