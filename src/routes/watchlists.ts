@@ -6,6 +6,7 @@ import {
   WatchListModelInput,
   WatchListModelWithAuctionAndCategory,
   AuctionsOnWatchListsModel,
+  type CompleteCategory,
 } from "../../prisma/zod";
 import { ParamsSchema } from "./schemas";
 const router = new OpenAPIHono();
@@ -144,10 +145,67 @@ router.openapi(updateUserWatchListsRoute, async (c) => {
   return c.json({ watchlists: [updatedWatchlist] }, 200);
 });
 
-//add auction to watchlist
+const createWatchlistRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Watchlist"],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: WatchListModelInput,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            watchlists: z.array(WatchListModelInput),
+          }),
+        },
+      },
+      description: "Add an auction to a user's watchlist",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: z.object({ message: z.string() }),
+        },
+      },
+      description: "Not found",
+    },
+  },
+});
+
+router.openapi(createWatchlistRoute, async (c) => {
+  const body = await c.req.json();
+  const watchlist = await prisma.watchlist.create({
+    data: {
+      userId: String(body.userId),
+      name: body.name,
+      maxPrice: parseFloat(body.maxPrice),
+      keyword: body.keyword,
+      categories: {
+        create: body.categories.map((category: CompleteCategory) => ({
+          categoryId: category.id,
+        })),
+      },
+    },
+  });
+
+  return c.json(
+    {
+      watchlistss: [watchlist],
+    },
+    200,
+  );
+});
 
 const addAuctionToWatchlistRoute = createRoute({
-  method: "post",
+  method: "put",
   path: "/",
   tags: ["Watchlist"],
   request: {
