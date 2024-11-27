@@ -5,7 +5,6 @@ import {
   WatchListModel,
   WatchListModelInput,
   WatchListModelWithAuctionAndCategory,
-  AuctionsOnWatchListsModel,
   type CompleteCategory,
 } from "../../prisma/zod";
 import { ParamsSchema } from "./schemas";
@@ -19,7 +18,7 @@ const getUserWatchListsRoute = createRoute({
     query: z.object({
       userId: z
         .string()
-        .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
+        .openapi({ example: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1" }),
     }),
   },
   responses: {
@@ -57,12 +56,10 @@ router.openapi(getUserWatchListsRoute, async (c) => {
 
 const getWatchListsByIdRoute = createRoute({
   method: "get",
-  path: "/",
+  path: "/{id}",
   tags: ["Watchlist"],
   request: {
-    query: z.object({
-      watchlistId: z.string().openapi({ example: "1" }),
-    }),
+    params: ParamsSchema,
   },
   responses: {
     200: {
@@ -81,7 +78,7 @@ const getWatchListsByIdRoute = createRoute({
 });
 
 router.openapi(getWatchListsByIdRoute, async (c) => {
-  const { watchlistId } = c.req.query();
+  const watchlistId = c.req.param("id");
   const watchlists = await prisma.watchlist.findMany({
     where: {
       id: parseInt(watchlistId),
@@ -167,7 +164,7 @@ const createWatchlistRoute = createRoute({
           }),
         },
       },
-      description: "Add an auction to a user's watchlist",
+      description: "Create a new watchlist for a user",
     },
     500: {
       content: {
@@ -206,59 +203,28 @@ router.openapi(createWatchlistRoute, async (c) => {
 
 const addAuctionToWatchlistRoute = createRoute({
   method: "put",
-  path: "/",
+  path: "/{watchlistId}/addAuction",
   tags: ["Watchlist"],
   request: {
     params: z
       .object({
-        watchlistId: z
-          .preprocess((val) => {
-            if (typeof val === "string") {
-              const num = Number(val);
-              if (Number.isInteger(num)) {
-                return num;
-              } else {
-                return NaN;
-              }
-            }
-            return val;
-          }, z.number().int())
-          .openapi({
-            param: {
-              in: "path",
-              name: "watchlistId",
-              required: true,
-            },
-            description: "The unique watchlist identifier.",
-            example: 123,
-          }),
-        auctionId: z
-          .preprocess((val) => {
-            if (typeof val === "string") {
-              const num = Number(val);
-              if (Number.isInteger(num)) {
-                return num;
-              } else {
-                return NaN;
-              }
-            }
-            return val;
-          }, z.number().int())
-          .openapi({
-            param: {
-              in: "path",
-              name: "auctionId",
-              required: true,
-            },
-            description: "The unique auction identifier.",
-            example: 123,
-          }),
+        watchlistId: z.coerce.number().openapi({
+          param: {
+            in: "path",
+            name: "watchlistId",
+            required: true,
+          },
+          description: "The unique watchlist identifier.",
+          example: 123,
+        }),
       })
       .strict(),
     body: {
       content: {
         "application/json": {
-          schema: AuctionsOnWatchListsModel,
+          schema: z
+            .object({ auctionId: z.number() })
+            .openapi({ example: { auctionId: 1 } }),
         },
       },
     },
@@ -272,7 +238,15 @@ const addAuctionToWatchlistRoute = createRoute({
           }),
         },
       },
-      description: "Add an auction to a user's watchlist",
+      description: "Successfully added the auction to the user's watchlist",
+    },
+    400: {
+      content: {
+        "application/json": {
+          schema: z.object({ message: z.string() }),
+        },
+      },
+      description: "The specified auction is already on the user's watchlist",
     },
     500: {
       content: {
@@ -287,38 +261,34 @@ const addAuctionToWatchlistRoute = createRoute({
 
 router.openapi(addAuctionToWatchlistRoute, async (c) => {
   const body = await c.req.json();
+  const watchlistId = c.req.param("watchlistId");
+  const auctionId = body.auctionId;
+
+  // Check if the auction is already in the watchlist
+  const existingEntry = await prisma.auctionsOnWatchlists.findUnique({
+    where: {
+      watchlistId_auctionId: {
+        // Use composite unique key alias
+        watchlistId: Number(watchlistId),
+        auctionId: Number(auctionId),
+      },
+    },
+  });
+
+  if (existingEntry) {
+    return c.json({ error: "This auction is already in the watchlist." }, 400);
+  }
+
+  // Add the auction to the watchlist
   const addedAuction = await prisma.auctionsOnWatchlists.create({
     data: {
-      auctionId: parseInt(body.auctionId),
-      watchlistId: parseInt(body.watchlistId),
+      watchlistId: Number(watchlistId),
+      auctionId: Number(auctionId),
     },
   });
-  if (!addedAuction) {
-    return c.json({ message: "Failed to add auction to watchlist" }, 500);
-  }
 
-  const updatedWatchlist = await prisma.watchlist.findFirst({
-    where: { id: parseInt(body.watchlistId) },
-    include: {
-      categories: { include: { category: true } },
-      auctions: { include: { auction: true } },
-    },
-  });
-  if (!updatedWatchlist) {
-    if (!addedAuction) {
-      return c.json({ message: "Failed to add auction to watchlist" }, 500);
-    }
-  }
-
-  return c.json(
-    {
-      watchlists: [updatedWatchlist],
-    },
-    200,
-  );
+  return c.json(addedAuction, 200);
 });
-
-//TODO: Delete auction from watchlist
 
 const removeAuctionFromWatchlistRoute = createRoute({
   method: "delete",
@@ -405,7 +375,7 @@ router.openapi(removeAuctionFromWatchlistRoute, async (c) => {
     },
   });
   if (!deletedAuction) {
-    return c.json({ message: "Failed to add auction to watchlist" }, 500);
+    return c.json({ message: "Failed to remove auction to watchlist" }, 500);
   }
 
   const updatedWatchlist = await prisma.watchlist.findFirst({
@@ -417,7 +387,7 @@ router.openapi(removeAuctionFromWatchlistRoute, async (c) => {
   });
   if (!updatedWatchlist) {
     if (!updatedWatchlist) {
-      return c.json({ message: "Failed to add auction to watchlist" }, 500);
+      return c.json({ message: "Failed to remove auction to watchlist" }, 500);
     }
   }
 
