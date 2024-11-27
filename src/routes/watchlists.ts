@@ -147,7 +147,7 @@ router.openapi(updateUserWatchListsRoute, async (c) => {
   }
 
   // Update watchlist fields
-  const updatedWatchlist = await prisma.watchlist.update({
+  await prisma.watchlist.update({
     where: { id: parseInt(id) },
     data: {
       name,
