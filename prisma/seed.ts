@@ -117,8 +117,7 @@ async function main() {
       },
     });
 
-    // Add between 0 and 5 bids for each auction
-    const bidCount = faker.number.int({ min: 0, max: 10 });
+    const bidCount = faker.number.int({ min: 0, max: 5 });
     for (let k = 0; k < bidCount; k++) {
       // Select a random existing user
       const randomUser = await prisma.user.findFirst({
@@ -127,11 +126,33 @@ async function main() {
       const randomBidderId = randomUser ? randomUser.awsId : null;
 
       if (randomBidderId) {
+        // Fetch the current highest bid for the auction
+        const highestBid = await prisma.bid.findFirst({
+          where: { auctionId: auction.id },
+          orderBy: { amount: "desc" }, // Order bids by amount in descending order
+        });
+
+        // Determine the new bid range based on the highest bid or start price
+        const basePrice =
+          highestBid && highestBid.amount > auction.startPrice
+            ? highestBid.amount
+            : auction.startPrice;
+
+        let maxBidAmount = auction.buyItNowPrice;
+        const minBidAmount = basePrice + 1;
+
+        // Ensure maxBidAmount is greater than minBidAmount
+        if (maxBidAmount <= minBidAmount) {
+          maxBidAmount = minBidAmount + faker.number.int({ min: 1, max: 5 }); // Add a buffer if max <= min
+        }
+
+        const bidAmount = parseFloat(
+          faker.commerce.price({ min: minBidAmount, max: maxBidAmount }),
+        );
+
         await prisma.bid.create({
           data: {
-            amount: parseFloat(
-              faker.commerce.price({ min: auction.startPrice, max: 1000 }),
-            ),
+            amount: bidAmount,
             placedAt: faker.date.recent(),
             userId: randomBidderId,
             auctionId: auction.id,
@@ -223,17 +244,40 @@ async function main() {
 
       const bidCount = faker.number.int({ min: 0, max: 5 });
       for (let k = 0; k < bidCount; k++) {
+        // Select a random existing user
         const randomUser = await prisma.user.findFirst({
           skip: faker.number.int({ min: 0, max: 99 }),
         });
         const randomBidderId = randomUser ? randomUser.awsId : null;
 
         if (randomBidderId) {
+          // Fetch the current highest bid for the auction
+          const highestBid = await prisma.bid.findFirst({
+            where: { auctionId: auction.id },
+            orderBy: { amount: "desc" }, // Order bids by amount in descending order
+          });
+
+          // Determine the new bid range based on the highest bid or start price
+          const basePrice =
+            highestBid && highestBid.amount > auction.startPrice
+              ? highestBid.amount
+              : auction.startPrice;
+
+          let maxBidAmount = auction.buyItNowPrice;
+          const minBidAmount = basePrice + 1;
+
+          // Ensure maxBidAmount is greater than minBidAmount
+          if (maxBidAmount <= minBidAmount) {
+            maxBidAmount = minBidAmount + faker.number.int({ min: 1, max: 5 }); // Add a buffer if max <= min
+          }
+
+          const bidAmount = parseFloat(
+            faker.commerce.price({ min: minBidAmount, max: maxBidAmount }),
+          );
+
           await prisma.bid.create({
             data: {
-              amount: parseFloat(
-                faker.commerce.price({ min: auction.startPrice, max: 1000 }),
-              ),
+              amount: bidAmount,
               placedAt: faker.date.recent(),
               userId: randomBidderId,
               auctionId: auction.id,
