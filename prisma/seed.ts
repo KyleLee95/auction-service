@@ -19,63 +19,6 @@ const CATEGORY_NAMES = [
 
 const execAsync = promisify(exec);
 
-// async function matchAuctionsToPriceCategories(
-//   priceCategories: Array<{ label: string; value: string }>,
-// ) {
-//   console.log("Matching price categories to auctions based on current bids...");
-//
-//   // Fetch all auctions with their highest bid
-//   const auctionsWithHighestBids = await prisma.auction.findMany({
-//     include: {
-//       bids: {
-//         select: { amount: true },
-//         orderBy: { amount: "desc" },
-//         take: 1, // Get the highest bid
-//       },
-//     },
-//   });
-//
-//   for (const auction of auctionsWithHighestBids) {
-//     // Get the highest bid for the auction, default to startPrice if no bids exist
-//     const highestBid =
-//       auction.bids.length > 0 ? auction.bids[0].amount : auction.startPrice;
-//
-//     // Find the matching price category
-//     const matchingCategory = priceCategories.find((category) => {
-//       const minPrice = category.value.includes("minPrice")
-//         ? parseInt(category.value.match(/minPrice=(\d+)/)?.[1] || "0", 10)
-//         : 0;
-//       const maxPrice = category.value.includes("maxPrice")
-//         ? parseInt(
-//             category.value.match(/maxPrice=(\d+)/)?.[1] || "Infinity",
-//             10,
-//           )
-//         : Infinity;
-//       return highestBid >= minPrice && highestBid <= maxPrice;
-//     });
-//
-//     if (matchingCategory) {
-//       console.log(
-//         `Auction ${auction.id} (highest bid: $${highestBid}) matched with category ${matchingCategory.label}`,
-//       );
-//
-//       // Associate the auction with the price category
-//       await prisma.categoriesOnAuctions.create({
-//         data: {
-//           auctionId: auction.id,
-//           categoryId: matchingCategory.id, // Assuming `id` exists in priceCategories
-//         },
-//       });
-//     } else {
-//       console.warn(
-//         `Auction ${auction.id} (highest bid: $${highestBid}) did not match any price category`,
-//       );
-//     }
-//   }
-//
-//   console.log("Price categories matched to auctions!");
-// }
-
 async function runMigrations() {
   console.log("Running migrations...");
   try {
@@ -153,6 +96,7 @@ async function main() {
         description: faker.commerce.productDescription(),
         startPrice: parseFloat(faker.commerce.price()),
         shippingPrice: parseFloat(faker.commerce.price({ min: 1, max: 20 })),
+        buyItNowPrice: parseFloat(faker.commerce.price()),
         startTime: faker.date.recent({
           days: Math.floor(Math.random() * 6) + 1,
         }),
@@ -203,6 +147,8 @@ async function main() {
     data: {
       name: "Admin's Watchlist",
       userId: ADMIN_USERID,
+      maxPrice: parseFloat(faker.commerce.price()),
+      keyword: faker.commerce.productName(),
     },
   });
 
@@ -301,6 +247,7 @@ async function main() {
       data: {
         name: `${user.name}'s Watchlist`,
         userId: user.awsId,
+        maxPrice: parseFloat(faker.commerce.price()),
       },
     });
 

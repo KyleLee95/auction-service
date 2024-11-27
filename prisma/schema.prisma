@@ -29,6 +29,7 @@ model Auction {
     description     String
     startPrice      Float                  @default(0.00)
     shippingPrice   Float                  @default(0.00)
+    buyItNowPrice   Float                  @default(0.00)
     startTime       DateTime               @default(now())
     endTime         DateTime               @default(now())
     quantity        Int                    @default(1)
@@ -71,6 +72,8 @@ model Watchlist {
     name       String                   @default("My Watchlist")
     user       User                     @relation(fields: [userId], references: [awsId])
     userId     String
+    maxPrice   Float? // Optional maximum price for filtering
+    keyword    String? // Search term (e.g., "Ray-Ban sunglasses")
     categories CategoriesOnWatchlists[]
     auctions   AuctionsOnWatchlists[]
 }

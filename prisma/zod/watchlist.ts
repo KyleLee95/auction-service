@@ -17,7 +17,13 @@ export const WatchListModelInput = z
     userId: z
       .string()
       .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
-    name: z.string(),
+    name: z.string().openapi({ example: "Rayban Sunglasses < $100" }),
+    categories: z
+      .array(z.string())
+      .optional()
+      .openapi({ example: ["Sunglasses", "glasses"] }),
+    maxPrice: z.number().optional().openapi({ example: 100 }),
+    keyword: z.string().optional().openapi({ example: "Rayban" }),
   })
   .openapi("WatchlistInput");
 
@@ -28,7 +34,14 @@ export const WatchListModel = z
     userId: z
       .string()
       .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
+    categories: z
+      .array(z.string())
+      .optional()
+      .openapi({ example: ["Sunglasses", "glasses"] }),
+    maxPrice: z.number().optional().openapi({ example: 100 }),
+    keyword: z.string().optional().openapi({ example: "Rayban" }),
   })
+
   .openapi("Watchlist");
 
 export const WatchListModelWithAuctionAndCategory = z
@@ -52,6 +65,8 @@ export const WatchListModelWithAuctionAndCategory = z
         category: CategoryModel,
       }),
     ),
+    maxPrice: z.number().optional().openapi({ example: 2000 }),
+    keyword: z.string().optional().openapi({ example: "Rayban" }),
   })
   .openapi("Watchlist");
 
@@ -59,6 +74,7 @@ export interface IWatchListIncludeAuctionAndCategory {
   id: number;
   name: string;
   userId: string;
+  maxPrice: number;
   auctions: {
     watchlistId: number;
     auctionId: number;

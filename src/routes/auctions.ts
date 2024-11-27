@@ -38,7 +38,6 @@ const searchAuctionsRoute = createRoute({
           )
           .optional(),
         order: z.enum(["asc", "desc"]).default("asc"),
-        minPrice: z.coerce.number().optional().default(0),
         maxPrice: z.coerce.number().optional().default(10000),
       })
       .openapi({
@@ -46,7 +45,6 @@ const searchAuctionsRoute = createRoute({
           term: "rayban sunglasses",
           categories: ["sunglasses", "rayban"],
           order: "asc",
-          minPrice: 0.0,
           maxPrice: 100000.0,
         },
       }),
@@ -77,9 +75,9 @@ const searchAuctionsRoute = createRoute({
 });
 
 router.openapi(searchAuctionsRoute, async (c) => {
-  const { term, categories, order, maxPrice, minPrice } = c.req.query();
-
+  const { term, categories, order, maxPrice } = c.req.query();
   const categoriesToFilterBy = c.req.queries("categories");
+
   if (!term && !categories) {
     return c.json(
       { error: "A query term or category name is required is required" },
@@ -96,13 +94,33 @@ router.openapi(searchAuctionsRoute, async (c) => {
             contains: term,
             mode: "insensitive",
           },
-          startPrice: {
-            lt: parseInt(maxPrice),
-            gt: parseInt(minPrice),
-          },
+          OR: [
+            {
+              startPrice: {
+                lte: parseInt(maxPrice),
+              },
+            },
+            {
+              buyItNowPrice: {
+                lte: parseInt(maxPrice),
+                gt: 0,
+              },
+            },
+            {
+              bids: {
+                some: { amount: { lte: parseInt(maxPrice) } },
+              },
+            },
+          ],
         },
         include: {
           categories: true,
+          bids: {
+            orderBy: {
+              amount: "desc",
+            },
+            take: 1,
+          },
         },
       });
 
@@ -115,26 +133,56 @@ router.openapi(searchAuctionsRoute, async (c) => {
     }
 
     if (!term && categories) {
-      console.log("min", parseFloat(minPrice), "max", parseFloat(maxPrice));
-      console.log("categoriesToFilterBy?", categoriesToFilterBy);
       const taggedWithCategories = await prisma.auction.findMany({
         where: {
-          startPrice: {
-            lt: parseFloat(maxPrice),
-            gt: parseFloat(minPrice),
-          },
-          categories: {
-            some: {
-              category: {
-                value: { in: categoriesToFilterBy },
+          isActive: true,
+          OR: [
+            {
+              startPrice: {
+                lte: parseFloat(maxPrice),
+              },
+            },
+            {
+              buyItNowPrice: {
+                lte: parseFloat(maxPrice),
+              },
+            },
+            {
+              bids: {
+                some: {
+                  amount: {
+                    lte: parseFloat(maxPrice),
+                  },
+                },
+              },
+            },
+          ],
+          AND: {
+            categories: {
+              some: {
+                category: {
+                  value: {
+                    in: categoriesToFilterBy,
+                  },
+                },
               },
             },
           },
         },
-        include: {
-          categories: true,
-        },
         orderBy: { endTime: order === DESC ? "desc" : "asc" },
+        include: {
+          bids: {
+            orderBy: {
+              amount: "desc",
+            },
+            take: 1, // Include the current highest bid
+          },
+          categories: {
+            include: {
+              category: true,
+            },
+          },
+        },
       });
       return c.json(
         {
@@ -146,20 +194,46 @@ router.openapi(searchAuctionsRoute, async (c) => {
 
     const termMatchesKeywordAndCategory = await prisma.auction.findMany({
       where: {
-        title: {
-          contains: term,
-          mode: "insensitive",
-        },
+        isActive: true,
+        OR: [
+          {
+            buyItNowPrice: {
+              lte: parseFloat(maxPrice),
+            },
+          },
+          {
+            bids: {
+              some: {
+                amount: {
+                  lte: parseFloat(maxPrice),
+                },
+              },
+            },
+          },
+        ],
         categories: {
           some: {
-            category: { value: { in: categoriesToFilterBy } },
+            category: {
+              value: {
+                in: categoriesToFilterBy,
+              },
+            },
           },
         },
       },
       include: {
-        categories: true,
+        bids: {
+          orderBy: {
+            amount: "desc",
+          },
+          take: 1, // Include the current highest bid
+        },
+        categories: {
+          include: {
+            category: true,
+          },
+        },
       },
-      orderBy: { endTime: order === DESC ? "desc" : "asc" },
     });
 
     return c.json(

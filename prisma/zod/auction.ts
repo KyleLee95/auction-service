@@ -18,6 +18,7 @@ export const AuctionModelInput = z
     description: z.string().openapi({ example: "Cool description" }),
     startPrice: z.number().openapi({ example: 0.99 }), // Accepts number from client
     shippingPrice: z.number().openapi({ example: 0.99 }),
+    buyItNowPrice: z.number().openapi({ example: 0.99 }),
     startTime: z.coerce
       .date()
       .openapi({ example: new Date(Date.now()).toISOString() }),
@@ -121,6 +122,7 @@ export interface IncludeAuction {
   description: string;
   startPrice: number;
   shippingPrice: number;
+  butItNowPrice: number;
   startTime: Date;
   endTime: Date;
   quantity: number;
