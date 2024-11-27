@@ -229,7 +229,7 @@ const addAuctionToWatchlistRoute = createRoute({
 
 router.openapi(addAuctionToWatchlistRoute, async (c) => {
   const body = await c.req.json();
-  const addedAuction = await prisma.auctionsOnWatchLists.create({
+  const addedAuction = await prisma.auctionsOnWatchlists.create({
     data: {
       auctionId: parseInt(body.auctionId),
       watchlistId: parseInt(body.watchlistId),

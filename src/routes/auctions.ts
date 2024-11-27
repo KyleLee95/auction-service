@@ -19,7 +19,7 @@ const searchAuctionsRoute = createRoute({
     query: z
       .object({
         term: z.string().optional(),
-        category: z
+        categories: z
           .array(
             z.string().transform((string) => {
               return string
@@ -44,7 +44,7 @@ const searchAuctionsRoute = createRoute({
       .openapi({
         example: {
           term: "rayban sunglasses",
-          category: ["sunglasses", "rayban"],
+          categories: ["sunglasses", "rayban"],
           order: "asc",
           minPrice: 0.0,
           maxPrice: 100000.0,
@@ -77,10 +77,10 @@ const searchAuctionsRoute = createRoute({
 });
 
 router.openapi(searchAuctionsRoute, async (c) => {
-  const { term, category, order, maxPrice, minPrice } = c.req.query();
+  const { term, categories, order, maxPrice, minPrice } = c.req.query();
 
-  const categoriesToFilterBy = c.req.queries("category");
-  if (!term && !category) {
+  const categoriesToFilterBy = c.req.queries("categories");
+  if (!term && !categories) {
     return c.json(
       { error: "A query term or category name is required is required" },
       500,
@@ -88,7 +88,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
   }
 
   try {
-    if (term && !category) {
+    if (term && !categories) {
       const keywordInTitleResults = await prisma.auction.findMany({
         orderBy: { endTime: order === DESC ? "desc" : "asc" },
         where: {
@@ -114,10 +114,10 @@ router.openapi(searchAuctionsRoute, async (c) => {
       );
     }
 
-    if (!term && category) {
+    if (!term && categories) {
       console.log("min", parseFloat(minPrice), "max", parseFloat(maxPrice));
       console.log("categoriesToFilterBy?", categoriesToFilterBy);
-      const taggedWithCategory = await prisma.auction.findMany({
+      const taggedWithCategories = await prisma.auction.findMany({
         where: {
           startPrice: {
             lt: parseFloat(maxPrice),
@@ -138,7 +138,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
       });
       return c.json(
         {
-          auctions: taggedWithCategory,
+          auctions: taggedWithCategories,
         },
         200,
       );
