@@ -19,6 +19,7 @@ const getUserWatchListsRoute = createRoute({
     query: z.object({
       userId: z
         .string()
+        .optional()
         .openapi({ example: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1" }),
     }),
   },
@@ -363,7 +364,7 @@ const removeAuctionFromWatchlistRoute = createRoute({
       },
       description: "Remove an auction from a user's watchlist",
     },
-    500: {
+    404: {
       content: {
         "application/json": {
           schema: z.object({ message: z.string() }),
@@ -371,11 +372,34 @@ const removeAuctionFromWatchlistRoute = createRoute({
       },
       description: "Not found",
     },
+    500: {
+      content: {
+        "application/json": {
+          schema: z.object({ message: z.string() }),
+        },
+      },
+      description: "Error",
+    },
   },
 });
 
 router.openapi(removeAuctionFromWatchlistRoute, async (c) => {
   const { watchlistId, auctionId } = c.req.param();
+
+  const auctionToDelete = await prisma.auctionsOnWatchlists.findFirst({
+    where: {
+      watchlistId: parseInt(watchlistId),
+      auctionId: parseInt(auctionId),
+    },
+  });
+
+  if (!auctionToDelete) {
+    return c.json(
+      { message: "The specified auction/watchlist combination was not found" },
+      404,
+    );
+  }
+
   const deletedAuction = await prisma.auctionsOnWatchlists.delete({
     where: {
       watchlistId_auctionId: {
@@ -384,6 +408,7 @@ router.openapi(removeAuctionFromWatchlistRoute, async (c) => {
       },
     },
   });
+
   if (!deletedAuction) {
     return c.json({ message: "Failed to remove auction to watchlist" }, 500);
   }
@@ -396,9 +421,7 @@ router.openapi(removeAuctionFromWatchlistRoute, async (c) => {
     },
   });
   if (!updatedWatchlist) {
-    if (!updatedWatchlist) {
-      return c.json({ message: "Failed to remove auction to watchlist" }, 500);
-    }
+    return c.json({ message: "Failed to remove auction to watchlist" }, 500);
   }
 
   return c.json(

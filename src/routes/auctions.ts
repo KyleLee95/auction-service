@@ -343,7 +343,7 @@ router.openapi(getAuctionsRoute, async (c) => {
 
 const getAuctionByIdRoute = createRoute({
   method: "get",
-  path: "/{auctionId}",
+  path: "/{id}",
   tags: ["Auction"],
   request: {
     params: ParamsSchema,
