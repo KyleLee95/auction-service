@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import prisma from "../db";
 import { z } from "zod";
 import {
+  CategoryModel,
   WatchListModel,
   WatchListModelInput,
   WatchListModelWithAuctionAndCategory,
@@ -131,15 +132,58 @@ const updateUserWatchListsRoute = createRoute({
 });
 
 router.openapi(updateUserWatchListsRoute, async (c) => {
-  const { id } = c.req.query();
-  const body = await c.req.json();
+  const { id } = c.req.param();
+
+  const { name, maxPrice, keyword, categories } = await c.req.json(); // New watchlist data
+
+  // Validate if the watchlist exists
+  const watchlist = await prisma.watchlist.findUnique({
+    where: { id: parseInt(id) },
+  });
+
+  if (!watchlist) {
+    return c.json({ message: "Watchlist not found" }, 500);
+  }
+
+  // Update watchlist fields
   const updatedWatchlist = await prisma.watchlist.update({
     where: { id: parseInt(id) },
     data: {
-      ...body,
+      name,
+      maxPrice,
+      keyword,
     },
   });
-  return c.json({ watchlists: [updatedWatchlist] }, 200);
+
+  // Update categories
+  if (categories && categories.length > 0) {
+    // Remove existing categories
+    await prisma.categoriesOnWatchlists.deleteMany({
+      where: { watchlistId: parseInt(id) },
+    });
+
+    // Add new categories
+    await prisma.categoriesOnWatchlists.createMany({
+      data: categories.map((category: z.infer<typeof CategoryModel>) => ({
+        watchlistId: parseInt(id),
+        categoryId: parseInt(category.id),
+      })),
+    });
+  }
+
+  // Fetch the updated watchlist with its categories
+  const finalWatchlist = await prisma.watchlist.findUnique({
+    where: { id: parseInt(id) },
+    include: {
+      categories: {
+        include: {
+          category: true,
+        },
+      },
+    },
+  });
+
+  return c.json({ watchlists: [finalWatchlist] }, 200);
 });
 
 const createWatchlistRoute = createRoute({
@@ -203,22 +247,10 @@ router.openapi(createWatchlistRoute, async (c) => {
 
 const addAuctionToWatchlistRoute = createRoute({
   method: "put",
-  path: "/{watchlistId}/addAuction",
+  path: "/{id}/addAuction",
   tags: ["Watchlist"],
   request: {
-    params: z
-      .object({
-        watchlistId: z.coerce.number().openapi({
-          param: {
-            in: "path",
-            name: "watchlistId",
-            required: true,
-          },
-          description: "The unique watchlist identifier.",
-          example: 123,
-        }),
-      })
-      .strict(),
+    params: ParamsSchema,
     body: {
       content: {
         "application/json": {
@@ -261,7 +293,7 @@ const addAuctionToWatchlistRoute = createRoute({
 
 router.openapi(addAuctionToWatchlistRoute, async (c) => {
   const body = await c.req.json();
-  const watchlistId = c.req.param("watchlistId");
+  const watchlistId = c.req.param("id");
   const auctionId = body.auctionId;
 
   // Check if the auction is already in the watchlist
@@ -280,14 +312,18 @@ router.openapi(addAuctionToWatchlistRoute, async (c) => {
   }
 
   // Add the auction to the watchlist
-  const addedAuction = await prisma.auctionsOnWatchlists.create({
+  await prisma.auctionsOnWatchlists.create({
     data: {
       watchlistId: Number(watchlistId),
       auctionId: Number(auctionId),
     },
   });
 
-  return c.json(addedAuction, 200);
+  const finalWatchlist = await prisma.watchlist.findFirst({
+    where: { id: parseInt(watchlistId) },
+  });
+
+  return c.json({ watchlists: [finalWatchlist] }, 200);
 });
 
 const removeAuctionFromWatchlistRoute = createRoute({
@@ -297,48 +333,22 @@ const removeAuctionFromWatchlistRoute = createRoute({
   request: {
     params: z
       .object({
-        watchlistId: z
-          .preprocess((val) => {
-            if (typeof val === "string") {
-              const num = Number(val);
-              if (Number.isInteger(num)) {
-                return num;
-              } else {
-                return NaN;
-              }
-            }
-            return val;
-          }, z.number().int())
-          .openapi({
-            param: {
-              in: "path",
-              name: "watchlistId",
-              required: true,
-            },
-            description: "The unique watchlist identifier.",
-            example: 123,
-          }),
-        auctionId: z
-          .preprocess((val) => {
-            if (typeof val === "string") {
-              const num = Number(val);
-              if (Number.isInteger(num)) {
-                return num;
-              } else {
-                return NaN;
-              }
-            }
-            return val;
-          }, z.number().int())
-          .openapi({
-            param: {
-              in: "path",
-              name: "auctionId",
-              required: true,
-            },
-            description: "The unique auction identifier.",
-            example: 123,
-          }),
+        watchlistId: z.coerce.number().openapi({
+          param: {
+            in: "path",
+            name: "watchlistId",
+          },
+          description: "The unique watchlist identifier.",
+          example: 123,
+        }),
+        auctionId: z.coerce.number().openapi({
+          param: {
+            in: "path",
+            name: "auctionId",
+          },
+          description: "The unique auction identifier.",
+          example: 123,
+        }),
       })
       .strict(),
   },
@@ -365,7 +375,7 @@ const removeAuctionFromWatchlistRoute = createRoute({
 });
 
 router.openapi(removeAuctionFromWatchlistRoute, async (c) => {
-  const { watchlistId, auctionId } = c.req.query();
+  const { watchlistId, auctionId } = c.req.param();
   const deletedAuction = await prisma.auctionsOnWatchlists.delete({
     where: {
       watchlistId_auctionId: {

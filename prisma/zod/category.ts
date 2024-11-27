@@ -15,9 +15,9 @@ export const CategoryModelInput = z
 
 export const CategoryModel = z
   .object({
-    id: z.number().int(),
-    label: z.string(),
-    value: z.string(),
+    id: z.number().int().openapi({ example: 1 }),
+    label: z.string().openapi({ example: "Autos" }),
+    value: z.string().openapi({ example: "autos" }),
   })
   .openapi("Category");
 

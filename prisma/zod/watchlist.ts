@@ -10,6 +10,7 @@ import {
   AuctionModel,
   CategoryModel,
   RelatedAuctionsOnWatchListsModel,
+  type CompleteCategory,
 } from "./index";
 
 export const WatchListModelInput = z
@@ -19,16 +20,10 @@ export const WatchListModelInput = z
       .openapi({ example: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1" }),
     name: z.string().openapi({ example: "Rayban Sunglasses < $100" }),
     categories: z
-      .array(CategoryModel)
+      .array(z.object({ id: z.number(), label: z.string(), value: z.string() }))
       .optional()
       .openapi({
-        example: [
-          {
-            id: 1,
-            value: "autos",
-            label: "Autos",
-          },
-        ],
+        example: [{ id: 1, label: "Autos", value: "autos" }],
       }),
     maxPrice: z.number().optional().openapi({ example: 100 }),
     keyword: z.string().optional().openapi({ example: "Rayban" }),
@@ -43,9 +38,11 @@ export const WatchListModel = z
       .string()
       .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
     categories: z
-      .array(z.string())
+      .array(z.object({ id: z.number(), label: z.string(), value: z.string() }))
       .optional()
-      .openapi({ example: ["Sunglasses", "glasses"] }),
+      .openapi({
+        example: [{ id: 1, label: "Autos", value: "autos" }],
+      }),
     maxPrice: z.number().optional().openapi({ example: 100 }),
     keyword: z.string().optional().openapi({ example: "Rayban" }),
   })
