@@ -610,7 +610,7 @@ const setAuctionInactiveRoute = createRoute({
           schema: z.object({ auctions: z.array(AuctionModel) }),
         },
       },
-      description: "flag an auction for inappropriate content",
+      description: "set the active state of the auction",
     },
     422: {
       content: {
@@ -631,7 +631,7 @@ router.openapi(setAuctionInactiveRoute, async (c) => {
       id: auctionId,
     },
     data: {
-      flagged: body.flagged,
+      isActive: body.isActive,
     },
   });
   if (!updatedAuction) {
@@ -680,7 +680,7 @@ const flagAuctionRoute = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            isActive: z.boolean().openapi({ example: true }),
+            isFlagged: z.boolean().openapi({ example: true }),
           }),
         },
       },
@@ -715,7 +715,7 @@ router.openapi(flagAuctionRoute, async (c) => {
       id: auctionId,
     },
     data: {
-      isActive: body.isActive,
+      flagged: body.isFlagged,
     },
   });
   if (!updatedAuction) {
