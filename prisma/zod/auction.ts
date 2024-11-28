@@ -33,8 +33,8 @@ export const AuctionModelInput = z
       .openapi({ example: "ae551edb-a55f-41e1-b4c1-fcbdd3919b26" }),
     quantity: z.number().int().openapi({ example: 10 }),
     buyItNowEnabled: z.boolean().openapi({ example: false }),
-    deleted: z.boolean().openapi({ example: false }),
-    flagged: z.boolean().openapi({ example: false }),
+    deleted: z.boolean().optional().openapi({ example: false }),
+    flagged: z.boolean().optional().openapi({ example: false }),
     categories: z
       .array(
         z.object({

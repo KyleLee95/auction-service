@@ -442,12 +442,6 @@ router.openapi(createAuctionRoute, async (c) => {
     sellerId,
     quantity,
     buyItNowEnabled,
-    deleted,
-    flagged,
-    createdAt,
-    closedAt,
-    buyerId,
-    updatedAt,
     categories,
   } = await c.req.json();
   const newAuction = await prisma.auction.create({
@@ -463,11 +457,8 @@ router.openapi(createAuctionRoute, async (c) => {
       sellerId,
       quantity,
       buyItNowEnabled,
-      deleted,
-      flagged,
-      closedAt,
-      createdAt,
-      updatedAt,
+      deleted: false,
+      flagged: false,
     },
   });
 
