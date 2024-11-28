@@ -10,7 +10,6 @@ import {
   RelatedUserModel,
   RelatedCategoryModel,
   RelatedWatchListModel,
-  CategoryModel,
 } from "./index";
 
 export const AuctionModelInput = z
@@ -23,32 +22,19 @@ export const AuctionModelInput = z
     startTime: z.coerce
       .date()
       .openapi({ example: new Date(Date.now()).toISOString() }),
-    endTime: z.coerce
-      .date()
-      .openapi({ example: new Date(Date.now()).toISOString() }),
+    endTime: z.coerce.date().openapi({
+      example: new Date(
+        new Date().setDate(new Date().getDate() + 14),
+      ).toISOString(),
+    }),
     isActive: z.boolean().openapi({ example: true }),
-    buyerId: z
-      .string()
-      .nullish()
-      .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
     sellerId: z
       .string()
-      .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
+      .openapi({ example: "ae551edb-a55f-41e1-b4c1-fcbdd3919b26" }),
     quantity: z.number().int().openapi({ example: 10 }),
     buyItNowEnabled: z.boolean().openapi({ example: false }),
     deleted: z.boolean().openapi({ example: false }),
     flagged: z.boolean().openapi({ example: false }),
-    closedAt: z.coerce
-      .date()
-      .optional()
-      .nullish()
-      .openapi({ example: new Date(Date.now()).toISOString() }),
-    createdAt: z.coerce
-      .date()
-      .openapi({ example: new Date(Date.now()).toISOString() }),
-    updatedAt: z.coerce
-      .date()
-      .openapi({ example: new Date(Date.now()).toISOString() }),
     categories: z
       .array(
         z.object({
