@@ -10,6 +10,7 @@ import {
   RelatedUserModel,
   RelatedCategoryModel,
   RelatedWatchListModel,
+  CategoryModel,
 } from "./index";
 
 export const AuctionModelInput = z
@@ -48,6 +49,25 @@ export const AuctionModelInput = z
     updatedAt: z.coerce
       .date()
       .openapi({ example: new Date(Date.now()).toISOString() }),
+    categories: z
+      .array(
+        z.object({
+          id: z.number().int(),
+          value: z.string(),
+          label: z.string(),
+        }),
+      )
+      .openapi({
+        example: [
+          { id: 1, value: "autos", label: "Autos" },
+          {
+            id: 2,
+            value: "clothing-shoes-accessories",
+            label: "Clothing, Shoes & Accessories",
+          },
+        ] as CompleteCategory[],
+      })
+      .optional(),
   })
   .openapi("AuctionInput");
 

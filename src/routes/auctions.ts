@@ -5,6 +5,7 @@ import {
   AuctionModel,
   AuctionModelInput,
   BidModelWithAuction,
+  type CompleteCategory,
 } from "../../prisma/zod";
 import { ParamsSchema } from "./schemas";
 const router = new OpenAPIHono();
@@ -77,7 +78,7 @@ const searchAuctionsRoute = createRoute({
 });
 
 router.openapi(searchAuctionsRoute, async (c) => {
-  const { term, categories, order, maxPrice, minPrice } = c.req.query();
+  const { term, categories, order, maxPrice } = c.req.query();
   const categoriesToFilterBy = c.req.queries("categories");
 
   if (!term && !categories) {
@@ -429,15 +430,79 @@ const createAuctionRoute = createRoute({
 });
 
 router.openapi(createAuctionRoute, async (c) => {
-  const body = await c.req.json();
+  const {
+    title,
+    description,
+    startPrice,
+    shippingPrice,
+    buyItNowPrice,
+    startTime,
+    endTime,
+    isActive,
+    sellerId,
+    quantity,
+    buyItNowEnabled,
+    deleted,
+    flagged,
+    createdAt,
+    closedAt,
+    buyerId,
+    updatedAt,
+    categories,
+  } = await c.req.json();
   const newAuction = await prisma.auction.create({
     data: {
-      ...body,
+      title,
+      description,
+      startPrice,
+      shippingPrice,
+      buyItNowPrice,
+      startTime,
+      endTime,
+      isActive,
+      sellerId,
+      quantity,
+      buyItNowEnabled,
+      deleted,
+      flagged,
+      closedAt,
+      createdAt,
+      updatedAt,
     },
   });
+
   if (!newAuction) {
     return c.json({ message: "Could not create auction" }, 422);
   }
+  const associatedCategories =
+    await prisma.categoriesOnAuctions.createManyAndReturn({
+      data: categories.map((category) => {
+        return { categoryId: category.id, auctionId: newAuction.id };
+      }),
+    });
+
+  const matchingWatchlists = await prisma.watchlist.findMany({
+    where: {
+      categories: {
+        some: {
+          categoryId: {
+            in: associatedCategories.map((category) => category.categoryId), // Replace with the new auction's category IDs
+          },
+        },
+      },
+      maxPrice: {
+        gte: newAuction.startPrice, // Optional: Match max price
+      },
+    },
+    include: {
+      user: true, // Include the user for sending notifications
+    },
+  });
+
+  console.log("matchingWatchlists", matchingWatchlists);
+
+  //TODO: send email to everyone that matches this query.
+  //send a rabbitMQ message to the notification service with all of the user data
 
   return c.json({ auctions: [newAuction] }, 200);
 });
@@ -566,7 +631,7 @@ router.openapi(setAuctionInactiveRoute, async (c) => {
       id: auctionId,
     },
     data: {
-      isActive: body.flagged,
+      flagged: body.flagged,
     },
   });
   if (!updatedAuction) {
