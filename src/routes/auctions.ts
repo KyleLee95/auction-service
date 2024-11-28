@@ -5,7 +5,6 @@ import {
   AuctionModel,
   AuctionModelInput,
   BidModelWithAuction,
-  type CompleteCategory,
 } from "../../prisma/zod";
 import { ParamsSchema } from "./schemas";
 const router = new OpenAPIHono();
@@ -381,7 +380,7 @@ router.openapi(getAuctionByIdRoute, async (c) => {
       id: id,
     },
     include: {
-      categories: true,
+      categories: { include: { category: true } },
       bids: true,
     },
   });
@@ -537,14 +536,59 @@ const updateAuctionRoute = createRoute({
 
 router.openapi(updateAuctionRoute, async (c) => {
   const { id } = c.req.valid("param");
-  const body = await c.req.json();
+  const {
+    title,
+    description,
+    startPrice,
+    shippingPrice,
+    buyItNowPrice,
+    startTime,
+    endTime,
+    isActive,
+    sellerId,
+    quantity,
+    buyItNowEnabled,
+    categories,
+  } = await c.req.json();
 
   const updatedAuction = await prisma.auction.update({
     where: {
       id: id,
     },
-    data: body,
+    data: {
+      title,
+      description,
+      startPrice,
+      shippingPrice,
+      buyItNowPrice,
+      startTime,
+      endTime,
+      isActive,
+      sellerId,
+      quantity,
+      buyItNowEnabled,
+    },
+    include: {
+      categories: { include: { category: true } },
+    },
   });
+
+  await prisma.categoriesOnAuctions.deleteMany({
+    where: {
+      categoryId: {
+        in: updatedAuction.categories.map((category) => {
+          return category.category.id;
+        }),
+      },
+    },
+  });
+
+  await prisma.categoriesOnAuctions.createManyAndReturn({
+    data: categories.map((category) => {
+      return { categoryId: category.id, auctionId: updatedAuction.id };
+    }),
+  });
+
   if (!updatedAuction) {
     return c.json({ message: "Could not update auction" }, 422);
   }
