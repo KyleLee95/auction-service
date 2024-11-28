@@ -18,7 +18,7 @@ const searchAuctionsRoute = createRoute({
   request: {
     query: z
       .object({
-        term: z.string().optional(),
+        term: z.string().optional().default(""),
         categories: z
           .array(
             z.string().transform((string) => {
@@ -36,7 +36,9 @@ const searchAuctionsRoute = createRoute({
                 .replace(/\s+/g, "-"); // Replace spaces with hyphens
             }),
           )
-          .optional(),
+
+          .optional()
+          .default([]),
         order: z.enum(["asc", "desc"]).default("asc"),
         maxPrice: z.coerce.number().optional().default(10000),
         minPrice: z.coerce.number().optional().default(0),
@@ -79,12 +81,26 @@ const searchAuctionsRoute = createRoute({
 router.openapi(searchAuctionsRoute, async (c) => {
   const { term, categories, order, maxPrice } = c.req.query();
   const categoriesToFilterBy = c.req.queries("categories");
+  const sanitizedMaxPrice = maxPrice ? parseFloat(maxPrice) : 100000;
 
   if (!term && !categories) {
-    return c.json(
-      { error: "A query term or category name is required is required" },
-      500,
-    );
+    const genericAuctions = await prisma.auction.findMany({
+      take: 50,
+      include: {
+        bids: {
+          select: { amount: true },
+          orderBy: { amount: "desc" },
+          take: 1,
+        },
+        categories: {
+          select: {
+            category: { select: { id: true, label: true, value: true } },
+          },
+        },
+      },
+    });
+
+    return c.json({ auctions: genericAuctions }, 200);
   }
 
   try {
@@ -100,19 +116,29 @@ router.openapi(searchAuctionsRoute, async (c) => {
           OR: [
             {
               buyItNowPrice: {
-                lte: parseFloat(maxPrice),
+                lte: sanitizedMaxPrice,
                 gt: 0,
               },
             },
             {
               bids: {
-                some: { amount: { lte: parseFloat(maxPrice) } },
+                some: { amount: { lte: sanitizedMaxPrice } },
               },
             },
           ],
         },
         include: {
-          categories: true,
+          categories: {
+            select: {
+              category: {
+                select: {
+                  id: true,
+                  label: true,
+                  value: true,
+                },
+              },
+            },
+          },
           bids: {
             orderBy: {
               amount: "desc",
@@ -137,7 +163,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
           OR: [
             {
               buyItNowPrice: {
-                lte: parseFloat(maxPrice),
+                lte: sanitizedMaxPrice,
                 gt: 0,
               },
             },
@@ -145,7 +171,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
               bids: {
                 some: {
                   amount: {
-                    lte: parseFloat(maxPrice),
+                    lte: sanitizedMaxPrice,
                   },
                 },
               },
@@ -174,8 +200,14 @@ router.openapi(searchAuctionsRoute, async (c) => {
             take: 1, // Include the current highest bid
           },
           categories: {
-            include: {
-              category: true,
+            select: {
+              category: {
+                select: {
+                  id: true,
+                  label: true,
+                  value: true,
+                },
+              },
             },
           },
         },
@@ -198,7 +230,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
         OR: [
           {
             buyItNowPrice: {
-              lte: parseFloat(maxPrice),
+              lte: sanitizedMaxPrice,
               gt: 0,
             },
           },
@@ -206,7 +238,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
             bids: {
               some: {
                 amount: {
-                  lte: parseFloat(maxPrice),
+                  lte: sanitizedMaxPrice,
                 },
               },
             },
@@ -234,8 +266,14 @@ router.openapi(searchAuctionsRoute, async (c) => {
           take: 1, // Include the current highest bid
         },
         categories: {
-          include: {
-            category: true,
+          select: {
+            category: {
+              select: {
+                id: true,
+                label: true,
+                value: true,
+              },
+            },
           },
         },
       },
@@ -312,6 +350,13 @@ router.openapi(getAuctionsRoute, async (c) => {
         sellerId: userId,
       },
       orderBy: { endTime: order === ASC ? "asc" : "desc" },
+      include: {
+        categories: {
+          select: {
+            category: true,
+          },
+        },
+      },
     });
 
     if (includeBidOn === "true") {
