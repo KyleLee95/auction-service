@@ -10,13 +10,13 @@ import {
   AuctionModel,
   CategoryModel,
   RelatedAuctionsOnWatchListsModel,
-  type CompleteCategory,
 } from "./index";
 
 export const WatchListModelInput = z
   .object({
     userId: z
       .string()
+      .optional()
       .openapi({ example: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1" }),
     name: z.string().openapi({ example: "Rayban Sunglasses < $100" }),
     categories: z

@@ -6,7 +6,7 @@ import { bidsRouter } from "./bids";
 const apiRouter = new OpenAPIHono();
 
 apiRouter.route("/auctions", auctionsRouter);
-apiRouter.route("/watchlist", watchlistRouter);
+apiRouter.route("/watchlists", watchlistRouter);
 apiRouter.route("/categories", categoriesRouter);
 apiRouter.route("/bids", bidsRouter);
 export { apiRouter };

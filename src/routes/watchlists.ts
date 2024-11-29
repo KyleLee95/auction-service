@@ -9,6 +9,7 @@ import {
   type CompleteCategory,
 } from "../../prisma/zod";
 import { ParamsSchema } from "./schemas";
+import { getQueryParam } from "hono/utils/url";
 const router = new OpenAPIHono();
 
 const getUserWatchListsRoute = createRoute({
@@ -255,17 +256,26 @@ router.openapi(createWatchlistRoute, async (c) => {
 });
 
 const addAuctionToWatchlistRoute = createRoute({
-  method: "put",
-  path: "/{id}/addAuction",
+  method: "post",
+  path: "/addAuction",
   tags: ["Watchlist"],
   request: {
-    params: ParamsSchema,
+    query: z
+      .object({
+        userId: z.string().optional(),
+        watchlistId: z.coerce.number().optional(),
+      })
+      .openapi({
+        example: {
+          userId: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1",
+          watchlistId: 1,
+        },
+      }),
+
     body: {
       content: {
         "application/json": {
-          schema: z
-            .object({ auctionId: z.number() })
-            .openapi({ example: { auctionId: 1 } }),
+          schema: z.object({}),
         },
       },
     },
@@ -301,35 +311,36 @@ const addAuctionToWatchlistRoute = createRoute({
 });
 
 router.openapi(addAuctionToWatchlistRoute, async (c) => {
-  const body = await c.req.json();
-  const watchlistId = c.req.param("id");
-  const auctionId = body.auctionId;
-
+  const queryParams = c.req.queries();
+  const { userId, auctionId } = queryParams;
   // Check if the auction is already in the watchlist
-  const existingEntry = await prisma.auctionsOnWatchlists.findUnique({
+  let userWatchlist = await prisma.watchlist.findFirst({
     where: {
-      watchlistId_auctionId: {
-        // Use composite unique key alias
-        watchlistId: Number(watchlistId),
-        auctionId: Number(auctionId),
-      },
+      userId: { in: userId },
     },
+    select: { id: true },
   });
 
-  if (existingEntry) {
-    return c.json({ error: "This auction is already in the watchlist." }, 400);
+  if (!userWatchlist) {
+    userWatchlist = await prisma.watchlist.create({
+      data: {
+        name: "My Watchlist",
+        maxPrice: 10000.0,
+        userId: userId[0],
+      },
+    });
   }
 
   // Add the auction to the watchlist
   await prisma.auctionsOnWatchlists.create({
     data: {
-      watchlistId: Number(watchlistId),
+      watchlistId: Number(userWatchlist.id),
       auctionId: Number(auctionId),
     },
   });
 
   const finalWatchlist = await prisma.watchlist.findFirst({
-    where: { id: parseInt(watchlistId) },
+    where: { id: userWatchlist.id },
   });
 
   return c.json({ watchlists: [finalWatchlist] }, 200);
