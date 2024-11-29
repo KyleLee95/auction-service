@@ -264,11 +264,13 @@ const addAuctionToWatchlistRoute = createRoute({
       .object({
         userId: z.string().optional(),
         watchlistId: z.coerce.number().optional(),
+        auctionId: z.coerce.number().optional(),
       })
       .openapi({
         example: {
           userId: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1",
           watchlistId: 1,
+          auctionId: 1,
         },
       }),
 
@@ -312,13 +314,28 @@ const addAuctionToWatchlistRoute = createRoute({
 
 router.openapi(addAuctionToWatchlistRoute, async (c) => {
   const queryParams = c.req.queries();
-  const { userId, auctionId } = queryParams;
+  const { auctionId, userId, watchlistId } = queryParams;
+
+  if (watchlistId) {
+    await prisma.auctionsOnWatchlists.create({
+      data: {
+        watchlistId: Number(watchlistId),
+        auctionId: Number(auctionId),
+      },
+    });
+
+    const updatedWatchlist = await prisma.watchlist.findFirst({
+      where: { id: parseInt(watchlistId[0]) },
+      include: { auctions: true },
+    });
+    return c.json({ watchlists: [updatedWatchlist] });
+  }
+
   // Check if the auction is already in the watchlist
   let userWatchlist = await prisma.watchlist.findFirst({
     where: {
       userId: { in: userId },
     },
-    select: { id: true },
   });
 
   if (!userWatchlist) {
@@ -341,6 +358,7 @@ router.openapi(addAuctionToWatchlistRoute, async (c) => {
 
   const finalWatchlist = await prisma.watchlist.findFirst({
     where: { id: userWatchlist.id },
+    include: { auctions: true },
   });
 
   return c.json({ watchlists: [finalWatchlist] }, 200);
