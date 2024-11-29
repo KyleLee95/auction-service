@@ -47,7 +47,11 @@ router.openapi(getUserWatchListsRoute, async (c) => {
     },
     include: {
       categories: { include: { category: true } },
-      auctions: { include: { auction: true } },
+      auctions: {
+        include: {
+          auction: { include: { categories: { include: { category: true } } } },
+        },
+      },
     },
   });
   if (!watchlists.length) {
@@ -87,7 +91,11 @@ router.openapi(getWatchListsByIdRoute, async (c) => {
     },
     include: {
       categories: { include: { category: true } },
-      auctions: { include: { auction: true } },
+      auctions: {
+        include: {
+          auction: { include: { categories: { include: { category: true } } } },
+        },
+      },
     },
   });
   if (!watchlists.length) {

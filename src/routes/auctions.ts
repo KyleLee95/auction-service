@@ -365,7 +365,7 @@ router.openapi(getAuctionsRoute, async (c) => {
           userId: userId,
         },
         include: {
-          auction: true,
+          auction: { include: { categories: { select: { category: true } } } },
         },
       });
 
