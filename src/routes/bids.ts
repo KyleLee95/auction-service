@@ -12,7 +12,7 @@ const createBid = createRoute({
     query: z.object({
       userId: z
         .string()
-        .openapi({ example: "c1eb0520-90a1-7030-7847-c8ca5bfbe65e" }),
+        .openapi({ example: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1" }),
       auctionId: z
         .preprocess((val) => {
           if (typeof val === "string") {
@@ -30,7 +30,11 @@ const createBid = createRoute({
     body: {
       content: {
         "application/json": {
-          schema: BidModelInput,
+          schema: z.object({ amount: z.coerce.number() }).openapi({
+            example: {
+              amount: 4000,
+            },
+          }),
         },
       },
     },
@@ -41,7 +45,7 @@ const createBid = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            bid: BidModel,
+            bids: z.array(BidModel),
           }),
         },
       },
@@ -73,6 +77,7 @@ const createBid = createRoute({
 router.openapi(createBid, async (c) => {
   const { userId, auctionId } = c.req.query();
   const { amount } = await c.req.json();
+
   if (!userId) {
     return c.json({ error: "userId is required" }, 400);
   }
@@ -81,17 +86,24 @@ router.openapi(createBid, async (c) => {
   }
 
   try {
-    //use the moment when the request is received as the time placed.
-    //since we can't trust the client to be honest about what time the bid was created
-    const timeReceived = new Date(Date.now());
-    const lastBid = await prisma.bid.findFirst({
-      where: {
-        amount: { gte: parseFloat(amount) },
-      },
-    });
+    const timeReceived = new Date();
 
-    if (!lastBid) {
-      const newBid = await prisma.bid.create({
+    const newBid = await prisma.$transaction(async (prisma) => {
+      // Fetch the highest bid for the auction
+      const lastBid = await prisma.bid.findFirst({
+        where: { auctionId: parseInt(auctionId) },
+        orderBy: { amount: "desc" }, // Get the highest bid
+      });
+
+      // Validate the bid amount
+      if (lastBid && parseFloat(amount) <= lastBid.amount) {
+        throw new Error(
+          `Bid amount must be greater than the current highest bid: $${lastBid.amount}.`,
+        );
+      }
+
+      // Create the new bid
+      return prisma.bid.create({
         data: {
           placedAt: timeReceived.toISOString(),
           amount: parseFloat(amount),
@@ -99,17 +111,18 @@ router.openapi(createBid, async (c) => {
           auctionId: parseInt(auctionId),
         },
       });
-      return c.json({ bid: newBid }, 200);
-    }
+    });
+
+    return c.json({ bids: [newBid] }, 200);
+  } catch (error) {
+    console.error("Error Creating Bid:", error.message);
     return c.json(
       {
-        error: `Could not create bid because the most recent bid amount is larger:$${lastBid.amount}.`,
+        error: error.message || "Failed to create bid",
       },
-      400,
+      error.message?.includes("Bid amount must be greater") ? 400 : 500,
     );
-  } catch (error) {
-    console.error("Error Creaing Bid:", error);
-    return c.json({ error: "Failed to Created bid" }, 500);
   }
 });
+
 export { router as bidsRouter };

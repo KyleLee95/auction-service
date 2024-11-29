@@ -426,9 +426,10 @@ router.openapi(getAuctionByIdRoute, async (c) => {
     },
     include: {
       categories: { include: { category: true } },
-      bids: true,
+      bids: { orderBy: { amount: "desc" } },
     },
   });
+
   if (!auction) {
     return c.json({ message: "Could not find auction" }, 404);
   }

@@ -8,5 +8,5 @@ const apiRouter = new OpenAPIHono();
 apiRouter.route("/auctions", auctionsRouter);
 apiRouter.route("/watchlist", watchlistRouter);
 apiRouter.route("/categories", categoriesRouter);
-apiRouter.route("/bid", bidsRouter);
+apiRouter.route("/bids", bidsRouter);
 export { apiRouter };
