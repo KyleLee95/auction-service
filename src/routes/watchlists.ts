@@ -9,7 +9,6 @@ import {
   type CompleteCategory,
 } from "../../prisma/zod";
 import { ParamsSchema } from "./schemas";
-import { getQueryParam } from "hono/utils/url";
 const router = new OpenAPIHono();
 
 const getUserWatchListsRoute = createRoute({
@@ -42,7 +41,7 @@ const getUserWatchListsRoute = createRoute({
 
 router.openapi(getUserWatchListsRoute, async (c) => {
   const { userId } = c.req.query();
-  const watchlists = await prisma.watchlist.findMany({
+  const watchlists = await prisma.watchlist.findFirst({
     where: {
       userId: userId,
     },

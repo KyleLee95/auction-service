@@ -9,20 +9,6 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model User {
-    id          Int         @id @default(autoincrement())
-    awsId       String      @unique()
-    name        String
-    isAdmin     Boolean     @default(false)
-    suspended   Boolean     @default(false)
-    bids        Bid[]
-    watchlist   Watchlist[]
-    createdAt   DateTime    @default(now())
-    updatedAt   DateTime    @updatedAt
-    items       Auction[]   @relation("UserAsSeller")
-    boughtItems Auction[]   @relation("UserAsBuyer")
-}
-
 model Auction {
     id              Int                    @id @default(autoincrement())
     title           String
@@ -33,10 +19,8 @@ model Auction {
     startTime       DateTime               @default(now())
     endTime         DateTime               @default(now())
     quantity        Int                    @default(1)
-    seller          User                   @relation("UserAsSeller", fields: [sellerId], references: [awsId])
     sellerId        String
-    buyer           User?                  @relation("UserAsBuyer", fields: [buyerId], references: [awsId])
-    buyerId         String? // Nullable to support auctions with no buyer yet
+    buyerId         String?
     isActive        Boolean                @default(true)
     buyItNowEnabled Boolean                @default(false)
     deleted         Boolean                @default(false)
@@ -53,7 +37,6 @@ model Bid {
     id        Int      @id @default(autoincrement())
     amount    Float
     placedAt  DateTime @default(now())
-    bidder    User     @relation(fields: [userId], references: [awsId])
     userId    String
     auction   Auction  @relation(fields: [auctionId], references: [id])
     auctionId Int
@@ -70,7 +53,6 @@ model Category {
 model Watchlist {
     id         Int                      @id @default(autoincrement())
     name       String                   @default("My Watchlist")
-    user       User                     @relation(fields: [userId], references: [awsId])
     userId     String
     maxPrice   Float? // Optional maximum price for filtering
     keyword    String? // Search term (e.g., "Ray-Ban sunglasses")
