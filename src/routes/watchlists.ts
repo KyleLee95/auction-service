@@ -78,9 +78,9 @@ const checkIfAuctionIsOnUserWatchlistRoute = createRoute({
         "application/json": {
           schema: z
             .object({
-              isAuctionOnWatchlist: z.boolean(),
+              isOnWatchlist: z.boolean(),
             })
-            .openapi({ example: { isAuctionOnWatchlist: true } }),
+            .openapi({ example: { isOnWatchlist: true } }),
         },
       },
       description: "Retrieve all WatchLists",
@@ -91,16 +91,13 @@ const checkIfAuctionIsOnUserWatchlistRoute = createRoute({
 router.openapi(checkIfAuctionIsOnUserWatchlistRoute, async (c) => {
   const { userId, auctionId } = c.req.queries();
 
-  const isAuctionOnWatchlist = await prisma.auctionsOnWatchlists.findFirst({
+  const isOnWatchlist = await prisma.auctionsOnWatchlists.findFirst({
     where: {
       auctionId: Number(auctionId),
       watchlist: { userId: String(userId) },
     },
   });
-  return c.json(
-    { isAuctionOnWatchlist: isAuctionOnWatchlist ? true : false },
-    200,
-  );
+  return c.json({ isOnWatchlist: isOnWatchlist === null ? false : true }, 200);
 });
 
 const getWatchListsByIdRoute = createRoute({
@@ -302,24 +299,20 @@ const addAuctionToWatchlistRoute = createRoute({
   path: "/addAuction",
   tags: ["Watchlist"],
   request: {
-    query: z
-      .object({
-        userId: z.string().optional(),
-        watchlistId: z.coerce.number().optional(),
-        auctionId: z.coerce.number().optional(),
-      })
-      .openapi({
-        example: {
-          userId: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1",
-          watchlistId: 1,
-          auctionId: 1,
-        },
-      }),
-
     body: {
       content: {
         "application/json": {
-          schema: z.object({}),
+          schema: z
+            .object({
+              userId: z.string(),
+              auctionId: z.coerce.number(),
+            })
+            .openapi({
+              example: {
+                userId: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1",
+                auctionId: 1,
+              },
+            }),
         },
       },
     },
@@ -355,28 +348,13 @@ const addAuctionToWatchlistRoute = createRoute({
 });
 
 router.openapi(addAuctionToWatchlistRoute, async (c) => {
-  const queryParams = c.req.queries();
-  const { auctionId, userId, watchlistId } = queryParams;
-
-  if (watchlistId) {
-    await prisma.auctionsOnWatchlists.create({
-      data: {
-        watchlistId: Number(watchlistId),
-        auctionId: Number(auctionId),
-      },
-    });
-
-    const updatedWatchlist = await prisma.watchlist.findFirst({
-      where: { id: parseInt(watchlistId[0]) },
-      include: { auctions: true },
-    });
-    return c.json({ watchlists: [updatedWatchlist] });
-  }
+  const body = await c.req.json();
+  const { userId, auctionId } = body;
 
   // Check if the auction is already in the watchlist
   let userWatchlist = await prisma.watchlist.findFirst({
     where: {
-      userId: { in: userId },
+      userId,
     },
   });
 
@@ -385,7 +363,7 @@ router.openapi(addAuctionToWatchlistRoute, async (c) => {
       data: {
         name: "My Watchlist",
         maxPrice: 10000.0,
-        userId: userId[0],
+        userId: userId || "",
       },
     });
   }
@@ -408,29 +386,26 @@ router.openapi(addAuctionToWatchlistRoute, async (c) => {
 
 const removeAuctionFromWatchlistRoute = createRoute({
   method: "delete",
-  path: "/{watchlistId}/auction/{auctionId}",
+  path: "/removeAuction",
   tags: ["Watchlist"],
   request: {
-    params: z
-      .object({
-        watchlistId: z.coerce.number().openapi({
-          param: {
-            in: "path",
-            name: "watchlistId",
-          },
-          description: "The unique watchlist identifier.",
-          example: 123,
-        }),
-        auctionId: z.coerce.number().openapi({
-          param: {
-            in: "path",
-            name: "auctionId",
-          },
-          description: "The unique auction identifier.",
-          example: 123,
-        }),
-      })
-      .strict(),
+    body: {
+      content: {
+        "application/json": {
+          schema: z
+            .object({
+              userId: z.string(),
+              auctionId: z.coerce.number(),
+            })
+            .openapi({
+              example: {
+                userId: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1",
+                auctionId: 1,
+              },
+            }),
+        },
+      },
+    },
   },
   responses: {
     200: {
@@ -446,7 +421,11 @@ const removeAuctionFromWatchlistRoute = createRoute({
     404: {
       content: {
         "application/json": {
-          schema: z.object({ message: z.string() }),
+          schema: z.object({ message: z.string() }).openapi({
+            example: {
+              message: "Could not find the auction/watchlist combination",
+            },
+          }),
         },
       },
       description: "Not found",
@@ -457,51 +436,44 @@ const removeAuctionFromWatchlistRoute = createRoute({
           schema: z.object({ message: z.string() }),
         },
       },
-      description: "Error",
+      description: "Error. Could not complete request.",
     },
   },
 });
 
 router.openapi(removeAuctionFromWatchlistRoute, async (c) => {
-  const { watchlistId, auctionId } = c.req.param();
-
-  const auctionToDelete = await prisma.auctionsOnWatchlists.findFirst({
+  const body = await c.req.json();
+  const { userId, auctionId } = body;
+  const userWatchlist = await prisma.watchlist.findFirst({
     where: {
-      watchlistId: parseInt(watchlistId),
-      auctionId: parseInt(auctionId),
+      userId,
     },
+    select: { id: true },
   });
 
-  if (!auctionToDelete) {
+  if (!userWatchlist) {
     return c.json(
-      { message: "The specified auction/watchlist combination was not found" },
-      404,
+      { message: "The auction is not on the user's watchlist" },
+      500,
     );
   }
 
-  const deletedAuction = await prisma.auctionsOnWatchlists.delete({
+  await prisma.auctionsOnWatchlists.delete({
     where: {
       watchlistId_auctionId: {
         auctionId: parseInt(auctionId),
-        watchlistId: parseInt(watchlistId),
+        watchlistId: userWatchlist.id,
       },
     },
   });
 
-  if (!deletedAuction) {
-    return c.json({ message: "Failed to remove auction to watchlist" }, 500);
-  }
-
   const updatedWatchlist = await prisma.watchlist.findFirst({
-    where: { id: parseInt(watchlistId) },
+    where: { id: userWatchlist.id },
     include: {
       categories: { include: { category: true } },
       auctions: { include: { auction: true } },
     },
   });
-  if (!updatedWatchlist) {
-    return c.json({ message: "Failed to remove auction to watchlist" }, 500);
-  }
 
   return c.json(
     {
