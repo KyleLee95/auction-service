@@ -11,6 +11,105 @@ const router = new OpenAPIHono();
 const ASC: string = "asc";
 const DESC: string = "desc";
 
+const createAuctionRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Auction"],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: AuctionModelInput,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z.object({ auctions: z.array(AuctionModel) }),
+        },
+      },
+      description: "Create an auction",
+    },
+    422: {
+      content: {
+        "application/json": {
+          schema: z.object({ message: z.string() }),
+        },
+      },
+      description: "Could not create auction",
+    },
+  },
+});
+
+router.openapi(createAuctionRoute, async (c) => {
+  const {
+    title,
+    description,
+    startPrice,
+    shippingPrice,
+    buyItNowPrice,
+    startTime,
+    endTime,
+    isActive,
+    sellerId,
+    quantity,
+    buyItNowEnabled,
+    categories,
+  } = await c.req.json();
+  const newAuction = await prisma.auction.create({
+    data: {
+      title,
+      description,
+      startPrice,
+      shippingPrice,
+      buyItNowPrice,
+      startTime,
+      endTime,
+      isActive,
+      sellerId,
+      quantity,
+      buyItNowEnabled,
+      deleted: false,
+      flagged: false,
+    },
+  });
+
+  if (!newAuction) {
+    return c.json({ message: "Could not create auction" }, 422);
+  }
+  const associatedCategories =
+    await prisma.categoriesOnAuctions.createManyAndReturn({
+      data: categories.map((category) => {
+        return { categoryId: category.id, auctionId: newAuction.id };
+      }),
+    });
+
+  const matchingWatchlists = await prisma.watchlist.findMany({
+    where: {
+      categories: {
+        some: {
+          categoryId: {
+            in: associatedCategories.map((category) => category.categoryId), // Replace with the new auction's category IDs
+          },
+        },
+      },
+      maxPrice: {
+        gte: newAuction.startPrice, // Optional: Match max price
+      },
+    },
+  });
+
+  console.log("matchingWatchlists", matchingWatchlists);
+
+  //TODO: send email to everyone that matches this query.
+  //send a rabbitMQ message to the notification service with all of the user data
+
+  return c.json({ auctions: [newAuction] }, 200);
+});
+
 const searchAuctionsRoute = createRoute({
   method: "get",
   path: "/search",
@@ -441,108 +540,6 @@ router.openapi(getAuctionByIdRoute, async (c) => {
   );
 });
 
-const createAuctionRoute = createRoute({
-  method: "post",
-  path: "/",
-  tags: ["Auction"],
-  request: {
-    body: {
-      content: {
-        "application/json": {
-          schema: AuctionModelInput,
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      content: {
-        "application/json": {
-          schema: z.object({ auctions: z.array(AuctionModel) }),
-        },
-      },
-      description: "Create an auction",
-    },
-    422: {
-      content: {
-        "application/json": {
-          schema: z.object({ message: z.string() }),
-        },
-      },
-      description: "Could not create auction",
-    },
-  },
-});
-
-router.openapi(createAuctionRoute, async (c) => {
-  const {
-    title,
-    description,
-    startPrice,
-    shippingPrice,
-    buyItNowPrice,
-    startTime,
-    endTime,
-    isActive,
-    sellerId,
-    quantity,
-    buyItNowEnabled,
-    categories,
-  } = await c.req.json();
-  const newAuction = await prisma.auction.create({
-    data: {
-      title,
-      description,
-      startPrice,
-      shippingPrice,
-      buyItNowPrice,
-      startTime,
-      endTime,
-      isActive,
-      sellerId,
-      quantity,
-      buyItNowEnabled,
-      deleted: false,
-      flagged: false,
-    },
-  });
-
-  if (!newAuction) {
-    return c.json({ message: "Could not create auction" }, 422);
-  }
-  const associatedCategories =
-    await prisma.categoriesOnAuctions.createManyAndReturn({
-      data: categories.map((category) => {
-        return { categoryId: category.id, auctionId: newAuction.id };
-      }),
-    });
-
-  const matchingWatchlists = await prisma.watchlist.findMany({
-    where: {
-      categories: {
-        some: {
-          categoryId: {
-            in: associatedCategories.map((category) => category.categoryId), // Replace with the new auction's category IDs
-          },
-        },
-      },
-      maxPrice: {
-        gte: newAuction.startPrice, // Optional: Match max price
-      },
-    },
-    include: {
-      user: true, // Include the user for sending notifications
-    },
-  });
-
-  console.log("matchingWatchlists", matchingWatchlists);
-
-  //TODO: send email to everyone that matches this query.
-  //send a rabbitMQ message to the notification service with all of the user data
-
-  return c.json({ auctions: [newAuction] }, 200);
-});
-
 const updateAuctionRoute = createRoute({
   method: "put",
   path: "/{id}",
@@ -797,10 +794,173 @@ router.openapi(flagAuctionRoute, async (c) => {
     },
     data: {
       flagged: body.isFlagged,
+      isActive: !body.isFlagged,
     },
   });
   if (!updatedAuction) {
     return c.json({ message: "Could not update auction" }, 422);
+  }
+  return c.json(
+    {
+      auctions: [updatedAuction],
+    },
+    200,
+  );
+});
+
+const closeAuction = createRoute({
+  method: "put",
+  path: "/{auctionId}/closeAuction",
+  tags: ["Auction"],
+  request: {
+    params: z
+      .object({
+        auctionId: z
+          .preprocess((val) => {
+            if (typeof val === "string") {
+              const num = Number(val);
+              if (Number.isInteger(num)) {
+                return num;
+              } else {
+                return NaN;
+              }
+            }
+            return val;
+          }, z.number().int())
+          .openapi({
+            param: {
+              in: "path",
+              name: "auctionId",
+              required: true,
+            },
+            description: "The unique resource identifier.",
+            example: 123,
+          }),
+      })
+      .strict(),
+
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            isActive: z.boolean().openapi({ example: false }),
+          }),
+        },
+      },
+    },
+  },
+
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z.object({ auctions: z.array(AuctionModel) }),
+        },
+      },
+      description: "set the active state of the auction",
+    },
+    422: {
+      content: {
+        "application/json": {
+          schema: z.object({ message: z.string() }),
+        },
+      },
+      description: "Could not process body",
+    },
+  },
+});
+
+router.openapi(closeAuction, async (c) => {
+  const { auctionId } = c.req.valid("param");
+  const body = await c.req.json();
+  const updatedAuction = await prisma.auction.update({
+    where: {
+      id: auctionId,
+    },
+    data: {
+      isActive: body.isActive,
+    },
+  });
+  if (!updatedAuction) {
+    return c.json({ message: "Could not update auction" }, 422);
+  }
+  return c.json(
+    {
+      auctions: [updatedAuction],
+    },
+    200,
+  );
+});
+
+const deleteAuctionRoute = createRoute({
+  method: "delete",
+  path: "/{auctionId}/deleteAuction",
+  tags: ["Auction"],
+  description: `Delete an auction. This is a "soft delete" that keeps the record in the database but marks the fields: "closedAt" to the time at which the request is received on the server, "deleted" to '"true", and "inActive" to true.`,
+  request: {
+    params: z
+      .object({
+        auctionId: z
+          .preprocess((val) => {
+            if (typeof val === "string") {
+              const num = Number(val);
+              if (Number.isInteger(num)) {
+                return num;
+              } else {
+                return NaN;
+              }
+            }
+            return val;
+          }, z.number().int())
+          .openapi({
+            param: {
+              in: "path",
+              name: "auctionId",
+              required: true,
+            },
+            description: "The unique resource identifier.",
+            example: 123,
+          }),
+      })
+      .strict(),
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z.object({ auctions: z.array(AuctionModel) }),
+        },
+      },
+      description: "Successfully deleted auction",
+    },
+    422: {
+      content: {
+        "application/json": {
+          schema: z.object({ message: z.string() }),
+        },
+      },
+      description: "Could not process body",
+    },
+  },
+});
+
+router.openapi(deleteAuctionRoute, async (c) => {
+  const { auctionId } = c.req.valid("param");
+  const updatedAuction = await prisma.auction.update({
+    where: {
+      id: auctionId,
+    },
+    data: {
+      deleted: true,
+      isActive: false,
+      closedAt: new Date(Date.now()).toISOString(),
+    },
+  });
+  if (!updatedAuction) {
+    return c.json(
+      { message: "The specified auction could not be deleted." },
+      422,
+    );
   }
   return c.json(
     {
