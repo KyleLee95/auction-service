@@ -1,8 +1,6 @@
 import * as z from "zod";
 import {
-  type CompleteUser,
   type CompleteAuction,
-  RelatedUserModel,
   RelatedAuctionModel,
   AuctionModel,
   type IncludeAuction,
@@ -47,7 +45,6 @@ export interface IBidModelWithAuction
 }
 
 export interface CompleteBid extends z.infer<typeof BidModel> {
-  bidder: CompleteUser;
   auction: CompleteAuction;
 }
 
@@ -58,7 +55,6 @@ export interface CompleteBid extends z.infer<typeof BidModel> {
  */
 export const RelatedBidModel: z.ZodSchema<CompleteBid> = z.lazy(() =>
   BidModel.extend({
-    bidder: RelatedUserModel,
     auction: RelatedAuctionModel,
   }),
 );

@@ -116,7 +116,6 @@ export interface CompleteAuction {
   createdAt: Date;
   updatedAt: Date;
   closedAt?: Date | null;
-  seller: CompleteUser;
   bids: CompleteBid[];
   categories: CompleteCategory[];
   watchlist: CompleteWatchList[];
@@ -141,13 +140,10 @@ export interface IncludeAuction {
   createdAt: Date;
   updatedAt: Date;
   closedAt?: Date | null;
-  seller: CompleteUser;
   bids: CompleteBid[];
 }
 
 export interface CompleteAuction extends z.infer<typeof AuctionModel> {
-  seller: CompleteUser;
-  buyer?: CompleteUser | null;
   bids: CompleteBid[];
   categories: CompleteCategory[];
   watchlist: CompleteWatchList[];
@@ -161,8 +157,6 @@ export interface CompleteAuction extends z.infer<typeof AuctionModel> {
  */
 export const RelatedAuctionModel: z.ZodSchema<CompleteAuction> = z.lazy(() =>
   AuctionModel.extend({
-    seller: RelatedUserModel,
-    buyer: RelatedUserModel.nullish(),
     bids: RelatedBidModel.array(),
     categories: RelatedCategoryModel.array(),
     watchlist: RelatedWatchListModel.array(),
