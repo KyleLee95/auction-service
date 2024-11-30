@@ -180,4 +180,45 @@ router.openapi(updateCategoryRoute, async (c) => {
   return c.json({ categories: [updatedCategory] }, 200);
 });
 
+const deleteCategoryRoute = createRoute({
+  method: "delete",
+  path: "/{id}",
+  tags: ["Category"],
+  request: {
+    params: ParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z.object({ categories: z.array(CategoryModel) }),
+        },
+      },
+      description: "Deleted a category based on its unique ID",
+    },
+    422: {
+      content: {
+        "application/json": {
+          schema: z.object({ message: z.string() }),
+        },
+      },
+      description: "Unable to create new category tag",
+    },
+  },
+});
+
+router.openapi(deleteCategoryRoute, async (c) => {
+  const { id } = c.req.valid("param");
+
+  const deletedCategory = await prisma.category.delete({
+    where: { id: id },
+  });
+
+  if (!deletedCategory) {
+    return c.json({ message: "unable to update category tag" }, 422);
+  }
+
+  return c.json({ categories: [deletedCategory] }, 200);
+});
+
 export { router as categoriesRouter };

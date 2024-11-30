@@ -38,7 +38,7 @@ model Bid {
     amount    Float
     placedAt  DateTime @default(now())
     userId    String
-    auction   Auction  @relation(fields: [auctionId], references: [id])
+    auction   Auction  @relation(fields: [auctionId], references: [id], onUpdate: Cascade, onDelete: Cascade)
     auctionId Int
 }
 
@@ -61,9 +61,9 @@ model Watchlist {
 }
 
 model CategoriesOnAuctions {
-    auction    Auction  @relation(fields: [auctionId], references: [id])
+    auction    Auction  @relation(fields: [auctionId], references: [id], onUpdate: Cascade, onDelete: Cascade)
     auctionId  Int
-    category   Category @relation(fields: [categoryId], references: [id])
+    category   Category @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Cascade)
     categoryId Int
 
     @@id([auctionId, categoryId])
@@ -81,7 +81,7 @@ model AuctionsOnWatchlists {
 model CategoriesOnWatchlists {
     watchlist   Watchlist @relation(fields: [watchlistId], references: [id])
     watchlistId Int
-    category    Category  @relation(fields: [categoryId], references: [id])
+    category    Category  @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Cascade)
     categoryId  Int
 
     @@id([watchlistId, categoryId])
