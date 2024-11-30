@@ -3,32 +3,10 @@ import { faker } from "@faker-js/faker";
 
 import { exec } from "child_process";
 import { promisify } from "util";
-const prisma = new PrismaClient();
-const ADMIN_USERID: string = process.env.ADMIN_USERID || ""; // Replace with the desired admin user UUID
-const CATEGORY_NAMES = [
-  { label: "Autos", value: "autos" },
-  {
-    label: "Clothing, Shoes & Accessories",
-    value: "clothing-shoes-accessories",
-  },
-  { label: "Electronics", value: "electronics" },
-  { label: "Sporting Goods", value: "sporting-goods" },
-  { label: "Jewelry & Watches", value: "jewelry-watches" },
-  { label: "Collectibles", value: "collectibles" },
-];
 
 const execAsync = promisify(exec);
-
-async function runMigrations() {
-  console.log("Running migrations...");
-  try {
-    await execAsync("npx prisma migrate deploy");
-    console.log("Migrations applied successfully!");
-  } catch (error) {
-    console.error("Error running migrations:", error);
-    throw error;
-  }
-}
+const prisma = new PrismaClient();
+const ADMIN_USERID: string = process.env.ADMIN_USERID || faker.string.uuid(); // Use ADMIN_USERID or generate one if not provided
 
 async function clearDatabase() {
   console.log("Dropping and recreating tables...");
@@ -57,53 +35,75 @@ async function clearDatabase() {
 
   console.log("Database reset complete!");
 }
-
 async function main() {
   await clearDatabase();
-
   console.log("Seeding database...");
 
-  // Create Admin User
-  console.log("Creating admin user");
-  const adminUser = await prisma.user.create({
-    data: {
-      awsId: ADMIN_USERID,
-      name: "Admin User",
-      isAdmin: true,
-      suspended: false,
+  // Create example categories
+  console.log("Creating example categories...");
+  const CATEGORY_NAMES = [
+    { label: "Autos", value: "autos" },
+    {
+      label: "Clothing, Shoes & Accessories",
+      value: "clothing-shoes-accessories",
     },
-  });
-  console.log(`Admin created with awsId: ${adminUser.awsId}`);
+    { label: "Electronics", value: "electronics" },
+    { label: "Sporting Goods", value: "sporting-goods" },
+    { label: "Jewelry & Watches", value: "jewelry-watches" },
+    { label: "Collectibles", value: "collectibles" },
+  ];
 
-  console.log("Creating example categories");
   const categories = [];
   for (const { label, value } of CATEGORY_NAMES) {
     const category = await prisma.category.create({
-      data: {
-        label,
-        value,
-      },
+      data: { label, value },
     });
     categories.push(category);
   }
 
-  console.log("Seeding 10 auctions for admin user");
+  // Create admin watchlist
+  console.log(`Creating watchlist for ADMIN_USERID: ${ADMIN_USERID}`);
+  const adminWatchlist = await prisma.watchlist.create({
+    data: {
+      name: "Admin's Watchlist",
+      maxPrice: parseFloat(faker.commerce.price({ min: 500, max: 5000 })),
+      userId: ADMIN_USERID,
+    },
+  });
+
+  // Associate random categories with the admin watchlist
+  console.log("Associating categories with admin's watchlist...");
+  const adminCategories = faker.helpers.arrayElements(categories, 3); // Select 3 random categories
+  for (const category of adminCategories) {
+    await prisma.categoriesOnWatchlists.create({
+      data: {
+        watchlistId: adminWatchlist.id,
+        categoryId: category.id,
+      },
+    });
+  }
+
   // Create 10 auctions for the admin user
-  for (let j = 1; j <= 30; j++) {
+  console.log(`Seeding 10 auctions for ADMIN_USERID: ${ADMIN_USERID}`);
+  for (let i = 0; i < 10; i++) {
+    const startPrice = parseFloat(faker.commerce.price({ min: 5, max: 800 }));
+    const buyItNowPrice =
+      startPrice + parseFloat(faker.commerce.price({ min: 5, max: 300 }));
+    const shippingPrice = parseFloat(faker.commerce.price({ min: 1, max: 15 }));
+    const startTime = faker.date.recent({ days: 7 });
+
     const auction = await prisma.auction.create({
       data: {
         title: faker.commerce.productName(),
         description: faker.commerce.productDescription(),
-        startPrice: parseFloat(faker.commerce.price()),
-        shippingPrice: parseFloat(faker.commerce.price({ min: 1, max: 20 })),
-        buyItNowPrice: parseFloat(faker.commerce.price()),
-        startTime: faker.date.recent({
-          days: Math.floor(Math.random() * 6) + 1,
-        }),
-        buyItNowEnabled: faker.datatype.boolean(),
-        isActive: faker.datatype.boolean(),
-        endTime: faker.date.future({ years: 1, refDate: Date.now() }),
+        startPrice: startPrice,
+        shippingPrice: shippingPrice,
+        buyItNowPrice: buyItNowPrice,
+        startTime,
+        endTime: faker.date.future({ years: 1, refDate: startTime }),
         quantity: faker.number.int({ min: 1, max: 5 }),
+        isActive: true,
+        buyItNowEnabled: faker.datatype.boolean(),
         sellerId: ADMIN_USERID,
       },
     });
@@ -117,119 +117,100 @@ async function main() {
       },
     });
 
-    const bidCount = faker.number.int({ min: 0, max: 5 });
-    for (let k = 0; k < bidCount; k++) {
-      // Select a random existing user
-      const randomUser = await prisma.user.findFirst({
-        skip: faker.number.int({ min: 0, max: 99 }),
-      });
-      const randomBidderId = randomUser ? randomUser.awsId : null;
-
-      if (randomBidderId) {
-        // Fetch the current highest bid for the auction
-        const highestBid = await prisma.bid.findFirst({
-          where: { auctionId: auction.id },
-          orderBy: { amount: "desc" }, // Order bids by amount in descending order
-        });
-
-        // Determine the new bid range based on the highest bid or start price
-        const basePrice =
-          highestBid && highestBid.amount > auction.startPrice
-            ? highestBid.amount
-            : auction.startPrice;
-
-        let maxBidAmount = auction.buyItNowPrice;
-        const minBidAmount = basePrice + 1;
-
-        // Ensure maxBidAmount is greater than minBidAmount
-        if (maxBidAmount <= minBidAmount) {
-          maxBidAmount = minBidAmount + faker.number.int({ min: 1, max: 5 }); // Add a buffer if max <= min
-        }
-
-        const bidAmount = parseFloat(
-          faker.commerce.price({ min: minBidAmount, max: maxBidAmount }),
-        );
-
-        await prisma.bid.create({
-          data: {
-            amount: bidAmount,
-            placedAt: faker.date.recent(),
-            userId: randomBidderId,
-            auctionId: auction.id,
-          },
-        });
-      }
-    }
-  }
-
-  // Create Watchlist for Admin User
-  console.log("Creating watchlist for admin user");
-  const adminWatchlist = await prisma.watchlist.create({
-    data: {
-      name: "Admin's Watchlist",
-      userId: ADMIN_USERID,
-      maxPrice: parseFloat(faker.commerce.price()),
-      keyword: faker.commerce.productName(),
-    },
-  });
-
-  // Add 2 auctions to admin's watchlist
-  const adminAuctionIds = await prisma.auction.findMany({
-    where: { sellerId: ADMIN_USERID },
-    select: { id: true },
-    take: 2,
-  });
-
-  for (const auction of adminAuctionIds) {
+    // Add auction to admin's watchlist
     await prisma.auctionsOnWatchlists.create({
       data: {
         watchlistId: adminWatchlist.id,
         auctionId: auction.id,
       },
     });
+
+    // Add bids to the auction
+    const bidCount = faker.number.int({ min: 1, max: 5 });
+    let highestBid = startPrice;
+    for (let j = 0; j < bidCount; j++) {
+      let maxBidAmount = buyItNowPrice;
+      const minBidAmount = highestBid + 1;
+
+      if (maxBidAmount <= minBidAmount) {
+        maxBidAmount = minBidAmount + 1;
+      }
+
+      const bidAmount = parseFloat(
+        faker.commerce.price({
+          min: minBidAmount,
+          max: maxBidAmount,
+        }),
+      );
+
+      highestBid = bidAmount;
+
+      await prisma.bid.create({
+        data: {
+          amount: highestBid,
+          placedAt: faker.date.recent({ days: 5 }),
+          userId: ADMIN_USERID,
+          auctionId: auction.id,
+        },
+      });
+    }
   }
 
-  // Attach 1 or 2 random categories to the watchlist
-  const randomCategoriesForWatchlist = faker.helpers.arrayElements(
-    categories,
-    faker.number.int({ min: 1, max: 2 }),
-  );
-  for (const category of randomCategoriesForWatchlist) {
-    await prisma.categoriesOnWatchlists.create({
-      data: {
-        watchlistId: adminWatchlist.id,
-        categoryId: category.id,
-      },
-    });
-  }
+  // Create 90 additional users
+  console.log("Creating 90 additional users...");
+  for (let i = 0; i < 90; i++) {
+    const userId = faker.string.uuid();
+    const userName = faker.person.fullName();
 
-  // Create 99 other users and seed data for them
-  console.log("Creating additional users and seeding their data");
-  for (let i = 2; i <= 100; i++) {
-    const userIdToUse = faker.string.uuid();
-    const user = await prisma.user.create({
+    // Create a watchlist for the user
+    const userWatchlist = await prisma.watchlist.create({
       data: {
-        awsId: userIdToUse,
-        name: faker.person.fullName(),
-        isAdmin: faker.datatype.boolean(),
-        suspended: faker.datatype.boolean(),
+        name: `${userName}'s Watchlist`,
+        maxPrice: parseFloat(faker.commerce.price({ min: 500, max: 5000 })),
+        userId: userId,
       },
     });
 
-    console.log(`Seeding 10 auctions for user ${user.awsId}`);
-    for (let j = 1; j <= 10; j++) {
+    console.log(
+      `Created watchlist: ${userWatchlist.name} for userId: ${userId}`,
+    );
+
+    // Associate random categories with the user's watchlist
+    const userCategories = faker.helpers.arrayElements(categories, 2); // Select 2 random categories
+    for (const category of userCategories) {
+      await prisma.categoriesOnWatchlists.create({
+        data: {
+          watchlistId: userWatchlist.id,
+          categoryId: category.id,
+        },
+      });
+    }
+
+    // Create 10 auctions for each user
+    for (let j = 0; j < 10; j++) {
+      const startPrice = parseFloat(
+        faker.commerce.price({ min: 10, max: 800 }),
+      );
+      const buyItNowPrice =
+        startPrice + parseFloat(faker.commerce.price({ min: 5, max: 100 }));
+      const shippingPrice = parseFloat(
+        faker.commerce.price({ min: 1, max: 10 }),
+      );
+      const startTime = faker.date.recent({ days: 7 });
+
       const auction = await prisma.auction.create({
         data: {
           title: faker.commerce.productName(),
           description: faker.commerce.productDescription(),
-          startPrice: parseFloat(faker.commerce.price()),
-          shippingPrice: parseFloat(faker.commerce.price({ min: 1, max: 20 })),
-          startTime: faker.date.recent({
-            days: Math.floor(Math.random() * 6) + 1,
-          }),
-          endTime: faker.date.future({ years: 1, refDate: Date.now() }),
+          startPrice: startPrice,
+          shippingPrice: shippingPrice,
+          buyItNowPrice: buyItNowPrice,
+          startTime,
+          endTime: faker.date.future({ years: 1, refDate: startTime }),
           quantity: faker.number.int({ min: 1, max: 5 }),
-          sellerId: user.awsId,
+          isActive: true,
+          buyItNowEnabled: faker.datatype.boolean(),
+          sellerId: userId,
         },
       });
 
@@ -242,84 +223,41 @@ async function main() {
         },
       });
 
-      const bidCount = faker.number.int({ min: 0, max: 5 });
-      for (let k = 0; k < bidCount; k++) {
-        // Select a random existing user
-        const randomUser = await prisma.user.findFirst({
-          skip: faker.number.int({ min: 0, max: 99 }),
-        });
-        const randomBidderId = randomUser ? randomUser.awsId : null;
+      // Add bids to the auction
+      const bidCount = faker.number.int({ min: 1, max: 5 });
+      let highestBid = startPrice;
+      for (let j = 0; j < bidCount; j++) {
+        let maxBidAmount = buyItNowPrice;
+        const minBidAmount = highestBid + 1;
 
-        if (randomBidderId) {
-          // Fetch the current highest bid for the auction
-          const highestBid = await prisma.bid.findFirst({
-            where: { auctionId: auction.id },
-            orderBy: { amount: "desc" }, // Order bids by amount in descending order
-          });
-
-          // Determine the new bid range based on the highest bid or start price
-          const basePrice =
-            highestBid && highestBid.amount > auction.startPrice
-              ? highestBid.amount
-              : auction.startPrice;
-
-          let maxBidAmount = auction.buyItNowPrice;
-          const minBidAmount = basePrice + 1;
-
-          // Ensure maxBidAmount is greater than minBidAmount
-          if (maxBidAmount <= minBidAmount) {
-            maxBidAmount = minBidAmount + faker.number.int({ min: 1, max: 5 }); // Add a buffer if max <= min
-          }
-
-          const bidAmount = parseFloat(
-            faker.commerce.price({ min: minBidAmount, max: maxBidAmount }),
-          );
-
-          await prisma.bid.create({
-            data: {
-              amount: bidAmount,
-              placedAt: faker.date.recent(),
-              userId: randomBidderId,
-              auctionId: auction.id,
-            },
-          });
+        if (maxBidAmount <= minBidAmount) {
+          maxBidAmount = minBidAmount;
         }
+
+        const bidAmount = parseFloat(
+          faker.commerce.price({
+            min: minBidAmount,
+            max: maxBidAmount + 1,
+          }),
+        );
+
+        highestBid = bidAmount;
+
+        await prisma.bid.create({
+          data: {
+            amount: highestBid,
+            placedAt: faker.date.recent({ days: 5 }),
+            userId: faker.string.uuid(),
+            auctionId: auction.id,
+          },
+        });
       }
-    }
 
-    const watchlist = await prisma.watchlist.create({
-      data: {
-        name: `${user.name}'s Watchlist`,
-        userId: user.awsId,
-        maxPrice: parseFloat(faker.commerce.price()),
-      },
-    });
-
-    const auctionIds = await prisma.auction.findMany({
-      where: { sellerId: user.awsId },
-      select: { id: true },
-      take: 2,
-    });
-
-    for (const auction of auctionIds) {
+      // Add auction to the user's watchlist
       await prisma.auctionsOnWatchlists.create({
         data: {
-          watchlistId: watchlist.id,
+          watchlistId: userWatchlist.id,
           auctionId: auction.id,
-        },
-      });
-    }
-
-    // Attach 1 or 2 random categories to the watchlist
-    const randomCategories = faker.helpers.arrayElements(
-      categories,
-      faker.number.int({ min: 1, max: 2 }),
-    );
-    for (const category of randomCategories) {
-      await prisma.categoriesOnWatchlists.create({
-        data: {
-          watchlistId: watchlist.id,
-          categoryId: category.id,
         },
       });
     }
@@ -336,3 +274,14 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+async function runMigrations() {
+  console.log("Running migrations...");
+  try {
+    await execAsync("npx prisma migrate deploy");
+    console.log("Migrations applied successfully!");
+  } catch (error) {
+    console.error("Error running migrations:", error);
+    throw error;
+  }
+}

@@ -54,7 +54,7 @@ router.openapi(getUserWatchListsRoute, async (c) => {
       },
     },
   });
-  if (!watchlists.length) {
+  if (!watchlists) {
     return c.json({ watchlists: [] }, 200);
   }
   return c.json({ watchlists }, 200);
