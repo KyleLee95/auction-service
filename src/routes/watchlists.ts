@@ -60,6 +60,49 @@ router.openapi(getUserWatchListsRoute, async (c) => {
   return c.json({ watchlists }, 200);
 });
 
+const checkIfAuctionIsOnUserWatchlistRoute = createRoute({
+  method: "get",
+  path: "/check",
+  tags: ["Watchlist"],
+  request: {
+    query: z.object({
+      userId: z
+        .string()
+        .openapi({ example: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1" }),
+      auctionId: z.coerce.number().openapi({ example: 1 }),
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z
+            .object({
+              isAuctionOnWatchlist: z.boolean(),
+            })
+            .openapi({ example: { isAuctionOnWatchlist: true } }),
+        },
+      },
+      description: "Retrieve all WatchLists",
+    },
+  },
+});
+
+router.openapi(checkIfAuctionIsOnUserWatchlistRoute, async (c) => {
+  const { userId, auctionId } = c.req.queries();
+
+  const isAuctionOnWatchlist = await prisma.auctionsOnWatchlists.findFirst({
+    where: {
+      auctionId: Number(auctionId),
+      watchlist: { userId: String(userId) },
+    },
+  });
+  return c.json(
+    { isAuctionOnWatchlist: isAuctionOnWatchlist ? true : false },
+    200,
+  );
+});
+
 const getWatchListsByIdRoute = createRoute({
   method: "get",
   path: "/{id}",
