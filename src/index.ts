@@ -8,7 +8,6 @@ import {
   extendZodWithOpenApi,
 } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
-import { publish } from "./mq";
 const app = new OpenAPIHono();
 
 function startServer() {
