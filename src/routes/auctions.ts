@@ -946,6 +946,20 @@ const deleteAuctionRoute = createRoute({
 
 router.openapi(deleteAuctionRoute, async (c) => {
   const { auctionId } = c.req.valid("param");
+  const auctionHasBids = await prisma.bid.findFirst({
+    where: {
+      auctionId: auctionId,
+    },
+  });
+  if (auctionHasBids) {
+    return c.json(
+      {
+        message:
+          "The auction cannot be deleted because it has already been bid on.",
+      },
+      422,
+    );
+  }
   const updatedAuction = await prisma.auction.update({
     where: {
       id: auctionId,
