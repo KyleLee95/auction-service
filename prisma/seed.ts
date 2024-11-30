@@ -35,6 +35,31 @@ async function clearDatabase() {
 
   console.log("Database reset complete!");
 }
+
+function generateKeywordFromTitle(title: string): string {
+  // Tokenize the title into words
+  const words = title.split(" ");
+
+  // Ensure there are at least two words to choose from
+  if (words.length < 2) {
+    return words[0]?.toLowerCase() || ""; // Return the single word as a keyword
+  }
+
+  // Randomly select 2-3 words from the title
+  const keywordWords = faker.helpers.arrayElements(
+    words,
+    faker.number.int({ min: 2, max: 3 }),
+  );
+
+  // Join selected words to form the keyword
+  return keywordWords.join(" ").toLowerCase();
+}
+
+// Example usage
+const auctionTitle = "Brand new Vintage Modern Chair";
+const keyword = generateKeywordFromTitle(auctionTitle);
+console.log(`Generated keyword: ${keyword}`);
+
 async function main() {
   await clearDatabase();
   console.log("Seeding database...");
@@ -68,6 +93,7 @@ async function main() {
       name: "Admin's Watchlist",
       maxPrice: parseFloat(faker.commerce.price({ min: 500, max: 5000 })),
       userId: ADMIN_USERID,
+      keyword: generateKeywordFromTitle(faker.commerce.productName()),
     },
   });
 
@@ -168,6 +194,7 @@ async function main() {
         name: `${userName}'s Watchlist`,
         maxPrice: parseFloat(faker.commerce.price({ min: 500, max: 5000 })),
         userId: userId,
+        keyword: generateKeywordFromTitle(faker.commerce.productName()),
       },
     });
 
