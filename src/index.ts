@@ -10,9 +10,13 @@ import {
 import { z } from "zod";
 const app = new OpenAPIHono();
 
+export const customLogger = (message: string, ...rest: string[]) => {
+  console.log(message, ...rest);
+};
+
 function startServer() {
   const PORT = process.env.PORT || 3000;
-  app.use(logger());
+  app.use(logger(customLogger));
 
   app.get("/", (c) => {
     return c.json({ hello: "world" }, 200);
