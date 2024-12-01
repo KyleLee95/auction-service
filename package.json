@@ -15,8 +15,10 @@
     "@hono/zod-openapi": "^0.18.0",
     "@prisma/client": "^6.0.0",
     "@types/amqplib": "^0.10.5",
+    "amqplib": "^0.10.5",
     "aws-sdk": "^2.1692.0",
     "decimal.js": "^10.4.3",
+    "dotenv": "^16.4.5",
     "hono": "^4.6.9",
     "zod": "^3.23.8"
   },

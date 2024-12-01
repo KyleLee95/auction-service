@@ -2,13 +2,20 @@ import { serve } from "@hono/node-server";
 import { swaggerUI } from "@hono/swagger-ui";
 import { logger } from "hono/logger";
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { prettyJSON } from "hono/pretty-json";
+import { showRoutes } from "hono/dev";
 import { apiRouter } from "./routes/index";
+import { startConsumer } from "./mq/consumer";
+import dotenv from "dotenv";
 import {
   OpenApiGeneratorV3,
   extendZodWithOpenApi,
 } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
-const app = new OpenAPIHono();
+
+dotenv.config();
+
+const app = new OpenAPIHono().basePath("/");
 
 export const customLogger = (message: string, ...rest: string[]) => {
   console.log(message, ...rest);
@@ -16,7 +23,8 @@ export const customLogger = (message: string, ...rest: string[]) => {
 
 function startServer() {
   const PORT = process.env.PORT || 3000;
-  app.use(logger(customLogger));
+
+  startConsumer().catch(console.error);
 
   app.get("/", (c) => {
     return c.json({ hello: "world" }, 200);
@@ -28,13 +36,8 @@ function startServer() {
     console.log(body);
     return c.json({ hello: "world" }, 200);
   });
-
-  app.get("/test-aws", async (c) => {
-    const data = await publish();
-    console.log("data", data);
-    return c.json(data);
-  });
-
+  app.use(prettyJSON()); // With options: prettyJSON({ space: 4 })
+  app.use(logger(customLogger));
   app.route("/api", apiRouter);
 
   // The OpenAPI documentation will be available at /doc
@@ -70,6 +73,15 @@ function startServer() {
     fetch: app.fetch,
     port: PORT as number,
   });
+
+  app.onError((err, c) => {
+    console.error(`${err}`);
+    return c.text("Custom Error Message", 500);
+  });
 }
+
+showRoutes(app, {
+  verbose: true,
+});
 
 startServer();
