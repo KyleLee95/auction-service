@@ -8,6 +8,9 @@ interface AuctionData {
   bid: CompleteBid;
 }
 
+const rabbitmqHost = process.env.RABBITMQ_HOST || "localhost";
+const connectionString = `amqp://${rabbitmqHost}:5672`;
+
 async function sendAuctionDataToCartService(auctionData: AuctionData) {
   const connection = await amqp.connect(connectionString);
   const channel = await connection.createChannel();
@@ -64,9 +67,6 @@ const endAuction = async (auctionId: number): Promise<AuctionData> => {
 
   return { auction: endedAuction, bid: highestBid };
 };
-
-const rabbitmqHost = process.env.RABBITMQ_HOST || "localhost";
-const connectionString = `amqp://${rabbitmqHost}:5672`;
 
 async function startConsumer() {
   const connection = await amqp.connect(connectionString);

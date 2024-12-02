@@ -22,7 +22,7 @@ export const customLogger = (message: string, ...rest: string[]) => {
 };
 
 function startServer() {
-  const PORT = process.env.PORT || 3000;
+  const PORT = process.env.PORT || 4000;
 
   startConsumer().catch(console.error);
 
