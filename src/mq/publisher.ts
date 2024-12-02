@@ -10,7 +10,7 @@ async function scheduleAuction(
 ) {
   const connection = await amqp.connect(connectionString);
   const channel = await connection.createChannel();
-  const exchange = "delayed-exchange";
+  const exchange = "auction-exchange";
 
   await channel.assertExchange(exchange, "x-delayed-message", {
     durable: true,
