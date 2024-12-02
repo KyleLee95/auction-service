@@ -11,7 +11,7 @@ interface AuctionData {
 async function sendAuctionDataToCartService(auctionData: AuctionData) {
   const connection = await amqp.connect(connectionString);
   const channel = await connection.createChannel();
-  const exchange = "cart-service";
+  const exchange = "cart-exchange";
 
   await channel.assertExchange(exchange, "direct", {
     durable: true,
