@@ -15,7 +15,6 @@ COPY . .
 
 # Generate Prisma client
 RUN npx prisma generate
-RUN npm run seed
 
 # Expose the service's port
 EXPOSE 4000
