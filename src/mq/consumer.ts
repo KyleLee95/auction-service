@@ -1,13 +1,16 @@
 import amqp from "amqplib";
 import prisma from "../db";
 
-const activeAuction = async (auctionId: number) => {
+const toggleAuctionActiveStatus = async (
+  auctionId: number,
+  status: boolean,
+) => {
   const activatedAuction = await prisma.auction.update({
     where: {
       id: auctionId,
     },
     data: {
-      isActive: true,
+      isActive: status,
     },
   });
   return activatedAuction;
@@ -21,23 +24,24 @@ async function startConsumer() {
   const channel = await connection.createChannel();
 
   const exchange = "delayed-exchange";
-  const queue = "auction-start-queue";
+  const auctionStartQueue = "auction-start-queue";
+  const auctionEndQueue = "auction-end-queue";
 
   await channel.assertExchange(exchange, "x-delayed-message", {
     durable: true,
     arguments: { "x-delayed-type": "direct" },
   });
 
-  await channel.assertQueue(queue, { durable: true });
-  await channel.bindQueue(queue, exchange, "auction.start");
+  await channel.assertQueue(auctionStartQueue, { durable: true });
+  await channel.bindQueue(auctionStartQueue, exchange, "auction.start");
 
-  channel.consume(queue, async (msg) => {
+  channel.consume(auctionStartQueue, async (msg) => {
     if (msg) {
       const { auctionId } = JSON.parse(msg.content.toString());
 
       try {
         console.log(`Activating auction ${auctionId}...`);
-        await activeAuction(auctionId);
+        await toggleAuctionActiveStatus(auctionId, true);
         console.log(`Auction ${auctionId} activated successfully.`);
       } catch (error) {
         console.error(
@@ -50,8 +54,29 @@ async function startConsumer() {
     }
   });
 
+  await channel.assertQueue(auctionEndQueue, { durable: true });
+  await channel.bindQueue(auctionEndQueue, exchange, "auction.end");
+
+  channel.consume(auctionEndQueue, async (msg) => {
+    if (msg) {
+      const { auctionId } = JSON.parse(msg.content.toString());
+
+      try {
+        await toggleAuctionActiveStatus(auctionId, false);
+        console.log(`Ended auction ${auctionId} successfully.`);
+      } catch (error) {
+        console.error(
+          `Failed to deactivate auction ${auctionId}:`,
+          error.message,
+        );
+      }
+
+      channel.ack(msg);
+    }
+  });
+
   console.log(
-    `Auction start consumer is running. Listening for messages on exchange ${exchange} from queue ${queue}.`,
+    `Auction consumer is running! Listening for messages on exchange ${exchange} from queue(s) ${auctionStartQueue}, ${auctionEndQueue}.`,
   );
 }
 

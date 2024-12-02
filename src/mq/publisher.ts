@@ -28,6 +28,7 @@ async function scheduleAuction(
   console.log(
     `Scheduled auction ${auctionId} to start in ${delay}ms, or ${startTime.toISOString()}.`,
   );
+
   const endTimeDelay = endTime.getTime() - Date.now();
   channel.publish(exchange, "auction.end", Buffer.from(message), {
     headers: { "x-delay": endTimeDelay },
