@@ -1,7 +1,7 @@
 import amqp from "amqplib";
 import { sesClient, sendEmail } from "../lib/aws/ses";
 import { cognitoClient, findUsersByUserId } from "../lib/aws/cognito";
-
+import { CompleteBid } from "../../prisma/zod";
 const rabbitmqHost = process.env.DEV ? "localhost" : process.env.RABBITMQ_HOST;
 const connectionString = `amqp://${rabbitmqHost}:5672`;
 
@@ -60,4 +60,21 @@ async function notifyMatchingWatchlistUsers(usersToUpdate: any[]) {
   await connection.close();
 }
 
-export { scheduleAuction, notifyMatchingWatchlistUsers };
+async function notifyNewBid(bidData) {
+  const connection = await amqp.connect(connectionString);
+  const channel = await connection.createChannel();
+  const exchange = "notification-exchange";
+
+  await channel.assertExchange(exchange, "direct", {
+    durable: true,
+  });
+
+  const message = JSON.stringify({ bidData });
+
+  channel.publish(exchange, "bid.new", Buffer.from(message), {});
+
+  await channel.close();
+  await connection.close();
+}
+
+export { scheduleAuction, notifyMatchingWatchlistUsers, notifyNewBid };

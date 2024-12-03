@@ -1,7 +1,8 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { z } from "zod";
-import { BidModel, BidModelInput } from "../../prisma/zod";
+import { BidModel, CompleteBid } from "../../prisma/zod";
 import prisma from "../db";
+import { notifyNewBid } from "../mq/publisher";
 const router = new OpenAPIHono();
 
 const createBid = createRoute({
@@ -93,6 +94,9 @@ router.openapi(createBid, async (c) => {
       const lastBid = await prisma.bid.findFirst({
         where: { auctionId: parseInt(auctionId) },
         orderBy: { amount: "desc" }, // Get the highest bid
+        include: {
+          auction: true,
+        },
       });
 
       // Validate the bid amount
@@ -102,6 +106,7 @@ router.openapi(createBid, async (c) => {
         );
       }
 
+      await notifyNewBid(lastBid);
       // Create the new bid
       return prisma.bid.create({
         data: {
