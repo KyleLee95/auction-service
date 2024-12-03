@@ -1,5 +1,8 @@
 import dotenv from "dotenv";
-dotenv.configDotenv({ path: "../.env" });
+//have to process env vars here otherwise everything else will break lol
+//TODO: fix this code smell if time permits
+const envFile = process.env.DEV === "true" ? "../.env.dev" : "../env.prod";
+dotenv.configDotenv({ path: envFile });
 import { serve } from "@hono/node-server";
 import { swaggerUI } from "@hono/swagger-ui";
 import { logger } from "hono/logger";
@@ -13,7 +16,6 @@ import {
   extendZodWithOpenApi,
 } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
-import { findUsersByUserId } from "./lib/aws/cognito";
 const app = new OpenAPIHono().basePath("/");
 
 export const customLogger = (message: string, ...rest: string[]) => {
@@ -72,13 +74,6 @@ function startServer() {
     fetch: app.fetch,
     port: PORT as number,
   });
-
-  // findUsersByUserId([
-  //   {
-  //     userId: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1",
-  //   },
-  //   { userId: "01cb6540-a0b1-70f8-cbb0-a492f1047990" },
-  // ]);
 
   app.onError((err, c) => {
     console.error(`${err}`);

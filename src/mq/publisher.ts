@@ -1,7 +1,6 @@
 import amqp from "amqplib";
-import { sesClient, sendEmail } from "../lib/aws/ses";
-import { cognitoClient, findUsersByUserId } from "../lib/aws/cognito";
-import { CompleteBid } from "../../prisma/zod";
+// import { sesClient, sendEmail } from "../lib/aws/ses";
+// import { cognitoClient, findUsersByUserId } from "../lib/aws/cognito";
 const rabbitmqHost = process.env.DEV ? "localhost" : process.env.RABBITMQ_HOST;
 const connectionString = `amqp://${rabbitmqHost}:5672`;
 

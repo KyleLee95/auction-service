@@ -2,8 +2,8 @@
   "name": "auction-service",
   "type": "module",
   "scripts": {
-    "start": "tsx watch src/index.ts",
-    "dev": "DEV=true tsx watch src/index.ts",
+    "start": "tsx DEV=false POSTGRES_DB=postgres-db watch src/index.ts",
+    "dev": "DEV=true POSTGRES_DB=localhost tsx watch src/index.ts",
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {

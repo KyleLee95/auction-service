@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { z } from "zod";
-import { BidModel, CompleteBid } from "../../prisma/zod";
+import { BidModel } from "../../prisma/zod";
 import prisma from "../db";
 import { notifyNewBid } from "../mq/publisher";
 const router = new OpenAPIHono();
