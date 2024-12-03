@@ -1,6 +1,4 @@
 import amqp from "amqplib";
-// import { sesClient, sendEmail } from "../lib/aws/ses";
-// import { cognitoClient, findUsersByUserId } from "../lib/aws/cognito";
 const rabbitmqHost = process.env.DEV ? "localhost" : process.env.RABBITMQ_HOST;
 const connectionString = `amqp://${rabbitmqHost}:5672`;
 
@@ -42,7 +40,17 @@ async function scheduleAuction(
   await connection.close();
 }
 
-async function notifyMatchingWatchlistUsers(usersToUpdate: any[]) {
+// async function notifyTimeRemaining(auctionData, users) {
+//eventType: "AUCTION_TIME_REMANING"
+// }
+
+async function notifyMatchingWatchlistUsers({
+  userIds,
+  auction,
+}: {
+  userIds: string[];
+  auction: unknown;
+}) {
   const connection = await amqp.connect(connectionString);
   const channel = await connection.createChannel();
   const exchange = "notification-exchange";
@@ -51,15 +59,28 @@ async function notifyMatchingWatchlistUsers(usersToUpdate: any[]) {
     durable: true,
   });
 
-  const message = JSON.stringify({ usersToUpdate });
+  const message = JSON.stringify({
+    eventType: "NOTIFY_WATCHLIST_MATCH",
+    userIds,
+    auction,
+  });
 
+  console.log("notifying watchlist users match");
   channel.publish(exchange, "watchlist.match", Buffer.from(message), {});
 
   await channel.close();
   await connection.close();
 }
 
-async function notifyNewBid(bidData) {
+async function notifyNewBid({
+  userIds,
+  auction,
+  bid,
+}: {
+  userIds: string[];
+  auction: unknown;
+  bid: unknown;
+}) {
   const connection = await amqp.connect(connectionString);
   const channel = await connection.createChannel();
   const exchange = "notification-exchange";
@@ -68,7 +89,12 @@ async function notifyNewBid(bidData) {
     durable: true,
   });
 
-  const message = JSON.stringify({ bidData });
+  const message = JSON.stringify({
+    userIds,
+    auction,
+    bid,
+    eventType: "NEW_BID",
+  });
 
   channel.publish(exchange, "bid.new", Buffer.from(message), {});
 

@@ -114,8 +114,14 @@ router.openapi(createAuctionRoute, async (c) => {
     newAuction.startTime,
     newAuction.endTime,
   );
+  const userIds = matchingWatchlists.map((list) => {
+    return list.userId;
+  });
 
-  await notifyMatchingWatchlistUsers(matchingWatchlists);
+  await notifyMatchingWatchlistUsers({
+    userIds: [...userIds],
+    auction: newAuction,
+  });
 
   return c.json({ auctions: [newAuction] }, 200);
 });

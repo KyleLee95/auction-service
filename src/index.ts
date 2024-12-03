@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 //have to process env vars here otherwise everything else will break lol
 //TODO: fix this code smell if time permits
-const envFile = process.env.DEV === "true" ? "../.env.dev" : "../env.prod";
+const envFile = process.env.DEV ? "../.env" : ".";
 dotenv.configDotenv({ path: envFile });
 import { serve } from "@hono/node-server";
 import { swaggerUI } from "@hono/swagger-ui";

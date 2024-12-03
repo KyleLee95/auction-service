@@ -105,8 +105,14 @@ router.openapi(createBid, async (c) => {
           `Bid amount must be greater than the current highest bid: $${lastBid.amount}.`,
         );
       }
+      if (lastBid) {
+        await notifyNewBid({
+          userIds: [lastBid.userId],
+          auction: lastBid.auction,
+          bid: lastBid,
+        });
+      }
 
-      await notifyNewBid(lastBid);
       // Create the new bid
       return prisma.bid.create({
         data: {
