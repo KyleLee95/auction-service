@@ -73,12 +73,12 @@ function startServer() {
     port: PORT as number,
   });
 
-  findUsersByUserId([
-    {
-      userId: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1",
-    },
-    { userId: "01cb6540-a0b1-70f8-cbb0-a492f1047990" },
-  ]);
+  // findUsersByUserId([
+  //   {
+  //     userId: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1",
+  //   },
+  //   { userId: "01cb6540-a0b1-70f8-cbb0-a492f1047990" },
+  // ]);
 
   app.onError((err, c) => {
     console.error(`${err}`);

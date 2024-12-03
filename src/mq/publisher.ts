@@ -46,7 +46,7 @@ async function scheduleAuction(
 async function notifyMatchingWatchlistUsers(usersToUpdate: any[]) {
   const connection = await amqp.connect(connectionString);
   const channel = await connection.createChannel();
-  const exchange = "auction-exchange";
+  const exchange = "notification-exchange";
 
   await channel.assertExchange(exchange, "direct", {
     durable: true,
