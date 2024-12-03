@@ -1,6 +1,5 @@
 import amqp from "amqplib";
 import { sesClient, sendEmail } from "../lib/aws/ses";
-
 import { cognitoClient, findUsersByUserId } from "../lib/aws/cognito";
 
 const rabbitmqHost = process.env.DEV ? "localhost" : process.env.RABBITMQ_HOST;
@@ -55,10 +54,10 @@ async function notifyMatchingWatchlistUsers(usersToUpdate: any[]) {
 
   const message = JSON.stringify({ usersToUpdate });
 
-  // channel.publish(exchange, "auction.start", Buffer.from(message), {});
+  channel.publish(exchange, "watchlist.match", Buffer.from(message), {});
 
   await channel.close();
   await connection.close();
 }
 
-export { scheduleAuction };
+export { scheduleAuction, notifyMatchingWatchlistUsers };
