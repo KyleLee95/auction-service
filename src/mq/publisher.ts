@@ -40,9 +40,46 @@ async function scheduleAuction(
   await connection.close();
 }
 
-// async function notifyTimeRemaining(auctionData, users) {
-//eventType: "AUCTION_TIME_REMANING"
-// }
+async function scheduleTimeRemainingNotifications(auction, userIds) {
+  const connection = await amqp.connect(connectionString);
+  const channel = await connection.createChannel();
+  const exchange = "auction-exchange";
+  const { startTime, endTime } = auction;
+
+  await channel.assertExchange(exchange, "x-delayed-message", {
+    durable: true,
+    arguments: { "x-delayed-type": "direct" },
+  });
+
+  //7 days
+  //3 days
+  //24 hours
+  //12 hours
+  //5 minutes
+  try {
+    const reminderDelays = {
+      oneWeek: new Date().setDate(endTime.getDate() - 7) - Date.now(),
+      threeDays: new Date().setDate(endTime.getDate() - 3) - Date.now(),
+      oneDay: new Date().setDate(endTime.getDate() - 1) - Date.now(),
+      twelveHours: new Date().setDate(endTime.getDate() - 0.5) - Date.now(),
+      fiveMinutes: new Date().setDate(endTime.getDate() - 0.08) - Date.now(),
+    };
+
+    for (const delay in reminderDelays) {
+      const message = JSON.stringify({ auction, userIds });
+
+      channel.publish(exchange, "auction.time", Buffer.from(message), {
+        headers: { "x-delay": 0 },
+      });
+    }
+    console.log(`Scheduled reminders for auction ${auction.id}.`);
+  } catch (err) {
+    console.error(err);
+  }
+
+  await channel.close();
+  await connection.close();
+}
 
 async function notifyMatchingWatchlistUsers({
   userIds,
@@ -102,4 +139,9 @@ async function notifyNewBid({
   await connection.close();
 }
 
-export { scheduleAuction, notifyMatchingWatchlistUsers, notifyNewBid };
+export {
+  scheduleAuction,
+  scheduleTimeRemainingNotifications,
+  notifyMatchingWatchlistUsers,
+  notifyNewBid,
+};

@@ -8,7 +8,7 @@ interface AuctionData {
   bid: CompleteBid;
 }
 
-const rabbitmqHost = process.env.RABBITMQ_HOST || "localhost";
+const rabbitmqHost = process.env.DEV ? "localhost" : process.env.RABBITMQ_HOST;
 const connectionString = `amqp://${rabbitmqHost}:5672`;
 
 async function sendAuctionDataToCartService(auctionData: AuctionData) {
@@ -81,6 +81,7 @@ async function startConsumer() {
     arguments: { "x-delayed-type": "direct" },
   });
 
+  //Auction Start
   await channel.assertQueue(auctionStartQueue, { durable: true });
   await channel.bindQueue(auctionStartQueue, exchange, "auction.start");
 
@@ -103,6 +104,7 @@ async function startConsumer() {
     }
   });
 
+  //Auction End
   await channel.assertQueue(auctionEndQueue, { durable: true });
   await channel.bindQueue(auctionEndQueue, exchange, "auction.end");
 
@@ -114,6 +116,66 @@ async function startConsumer() {
         const auctionData = await endAuction(auctionId);
         console.log(`Ended auction ${auctionId} successfully.`);
         await sendAuctionDataToCartService(auctionData);
+      } catch (error) {
+        console.error(
+          `Failed to deactivate auction ${auctionId}:`,
+          error.message,
+        );
+      }
+
+      channel.ack(msg);
+    }
+  });
+
+  console.log(
+    `Auction consumer is running! Listening for messages on exchange ${exchange} from queue(s) ${auctionStartQueue}, ${auctionEndQueue}..`,
+  );
+
+  //Auction Reminder
+  await channel.assertQueue("auction-ending-soon-queue", { durable: true });
+  await channel.bindQueue(
+    "auction-ending-soon-queue",
+    "notification-exchange",
+    "auction.time",
+  );
+
+  channel.consume("auction-ending-soon-queue", async (msg) => {
+    if (msg) {
+      const { auctionId } = JSON.parse(msg.content.toString());
+
+      try {
+        // const auctionData = await endAuction(auctionId);
+        // console.log(`Ended auction ${auctionId} successfully.`);
+        // await sendAuctionDataToCartService(auctionData);
+
+        const watchlistsWatchingAuction =
+          await prisma.auctionsOnWatchlists.findMany({
+            where: { auctionId: auctionId },
+            include: {
+              watchlist: {
+                select: { userId: true },
+              },
+              auction: true,
+            },
+          });
+        const watchingUserIds = watchlistsWatchingAuction.map((list) => {
+          return list.watchlist.userId;
+        });
+        const { auction } = watchlistsWatchingAuction[0];
+        const sellerId = auction.sellerId;
+
+        const message = JSON.stringify({
+          eventType: "AUCTION_TIME_REMAINING",
+          userIds: [sellerId, ...watchingUserIds],
+          auction,
+        });
+        console.log("sending time remaing message");
+        channel.publish(
+          "notification-exchange",
+          "auction.time",
+          Buffer.from(message),
+          {},
+        );
       } catch (error) {
         console.error(
           `Failed to deactivate auction ${auctionId}:`,

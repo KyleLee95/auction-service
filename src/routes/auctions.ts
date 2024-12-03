@@ -1,5 +1,9 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
-import { scheduleAuction, notifyMatchingWatchlistUsers } from "../mq/publisher";
+import {
+  scheduleAuction,
+  scheduleTimeRemainingNotifications,
+  notifyMatchingWatchlistUsers,
+} from "../mq/publisher";
 import prisma from "../db";
 import { z } from "zod";
 import {
@@ -103,12 +107,12 @@ router.openapi(createAuctionRoute, async (c) => {
     },
   });
 
-  console.log("matchingWatchlists", matchingWatchlists);
+  // console.log("matchingWatchlists", matchingWatchlists);
 
   //TODO: send email to everyone that matches this query.
   //send a rabbitMQ message to the notification service with all of the user data
 
-  console.log("scheduling auction...");
+  console.log("Scheduling Auction...");
   await scheduleAuction(
     newAuction.id,
     newAuction.startTime,
@@ -122,6 +126,12 @@ router.openapi(createAuctionRoute, async (c) => {
     userIds: [...userIds],
     auction: newAuction,
   });
+
+  console.log("Scheduling Auction Reminders...");
+
+  await scheduleTimeRemainingNotifications(newAuction, userIds);
+
+  console.log("Notifying Users with matching Watchlist criteria...");
 
   return c.json({ auctions: [newAuction] }, 200);
 });
