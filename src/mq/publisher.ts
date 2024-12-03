@@ -1,6 +1,9 @@
 import amqp from "amqplib";
+import { sesClient, sendEmail } from "../lib/aws/ses";
 
-const rabbitmqHost = process.env.RABBITMQ_HOST || "localhost";
+import { cognitoClient, findUsersByUserId } from "../lib/aws/cognito";
+
+const rabbitmqHost = process.env.DEV ? "localhost" : process.env.RABBITMQ_HOST;
 const connectionString = `amqp://${rabbitmqHost}:5672`;
 
 async function scheduleAuction(
@@ -37,6 +40,23 @@ async function scheduleAuction(
   console.log(
     `Scheduled auction ${auctionId} to end in ${endTimeDelay}ms, or ${endTime.toISOString()}.`,
   );
+  await channel.close();
+  await connection.close();
+}
+
+async function notifyMatchingWatchlistUsers(usersToUpdate: any[]) {
+  const connection = await amqp.connect(connectionString);
+  const channel = await connection.createChannel();
+  const exchange = "auction-exchange";
+
+  await channel.assertExchange(exchange, "direct", {
+    durable: true,
+  });
+
+  const message = JSON.stringify({ usersToUpdate });
+
+  // channel.publish(exchange, "auction.start", Buffer.from(message), {});
+
   await channel.close();
   await connection.close();
 }

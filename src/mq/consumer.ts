@@ -8,7 +8,7 @@ interface AuctionData {
   bid: CompleteBid;
 }
 
-const rabbitmqHost = process.env.RABBITMQ_HOST || "localhost";
+const rabbitmqHost = process.env.DEV ? "localhost" : process.env.RABBITMQ_HOST;
 const connectionString = `amqp://${rabbitmqHost}:5672`;
 
 async function sendAuctionDataToCartService(auctionData: AuctionData) {

@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.configDotenv({ path: "../.env" });
 import { serve } from "@hono/node-server";
 import { swaggerUI } from "@hono/swagger-ui";
 import { logger } from "hono/logger";
@@ -6,15 +8,12 @@ import { prettyJSON } from "hono/pretty-json";
 import { showRoutes } from "hono/dev";
 import { apiRouter } from "./routes/index";
 import { startConsumer } from "./mq/consumer";
-import dotenv from "dotenv";
 import {
   OpenApiGeneratorV3,
   extendZodWithOpenApi,
 } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
-
-dotenv.config();
-
+import { findUsersByUserId } from "./lib/aws/cognito";
 const app = new OpenAPIHono().basePath("/");
 
 export const customLogger = (message: string, ...rest: string[]) => {
@@ -73,6 +72,13 @@ function startServer() {
     fetch: app.fetch,
     port: PORT as number,
   });
+
+  findUsersByUserId([
+    {
+      userId: "c1bba5c0-b001-7085-7a2e-e74d5399c3d1",
+    },
+    { userId: "01cb6540-a0b1-70f8-cbb0-a492f1047990" },
+  ]);
 
   app.onError((err, c) => {
     console.error(`${err}`);

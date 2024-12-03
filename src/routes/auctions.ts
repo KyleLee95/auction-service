@@ -107,6 +107,7 @@ router.openapi(createAuctionRoute, async (c) => {
 
   //TODO: send email to everyone that matches this query.
   //send a rabbitMQ message to the notification service with all of the user data
+
   console.log("scheduling auction...");
   await scheduleAuction(
     newAuction.id,
