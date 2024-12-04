@@ -77,6 +77,11 @@ async function startConsumer() {
   const auctionStartQueue = "auction-start-queue";
   const auctionEndQueue = "auction-end-queue";
 
+  const notificationExchange = "notification-exchange";
+  await channel.assertExchange(notificationExchange, "direct", {
+    durable: true,
+  });
+
   await channel.assertExchange(exchange, "x-delayed-message", {
     durable: true,
     arguments: { "x-delayed-type": "direct" },
@@ -129,7 +134,7 @@ async function startConsumer() {
   });
 
   //Auction Reminder
-  await channel.assertQueue("auction-end-queue", { durable: true });
+  await channel.assertQueue("auction-ending-soon-queue", { durable: true });
   await channel.bindQueue(
     "auction-end-queue",
     "notification-exchange",
