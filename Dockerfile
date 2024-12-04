@@ -23,4 +23,3 @@ EXPOSE 4000
 
 # Start the application
 CMD ["npm", "run", "start"]
-

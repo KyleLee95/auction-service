@@ -129,9 +129,9 @@ async function startConsumer() {
   });
 
   //Auction Reminder
-  await channel.assertQueue("auction-ending-soon-queue", { durable: true });
+  await channel.assertQueue("auction-end-queue", { durable: true });
   await channel.bindQueue(
-    "auction-ending-soon-queue",
+    "auction-end-queue",
     "notification-exchange",
     "auction.time",
   );
