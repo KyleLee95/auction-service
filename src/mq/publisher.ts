@@ -1,5 +1,6 @@
 import amqp from "amqplib";
-const rabbitmqHost = process.env.DEV ? "localhost" : process.env.RABBITMQ_HOST;
+const rabbitmqHost =
+  process.env.DEV === "TRUE" ? "localhost" : process.env.RABBITMQ_HOST;
 const connectionString = `amqp://${rabbitmqHost}:5672`;
 
 async function scheduleAuction(
@@ -102,7 +103,6 @@ async function notifyMatchingWatchlistUsers({
     auction,
   });
 
-  console.log("notifying watchlist users match");
   channel.publish(exchange, "watchlist.match", Buffer.from(message), {});
 
   await channel.close();

@@ -8,7 +8,8 @@ interface AuctionData {
   bid: CompleteBid;
 }
 
-const rabbitmqHost = process.env.DEV ? "localhost" : process.env.RABBITMQ_HOST;
+const rabbitmqHost =
+  process.env.DEV === "TRUE" ? "localhost" : process.env.RABBITMQ_HOST;
 const connectionString = `amqp://${rabbitmqHost}:5672`;
 
 async function sendAuctionDataToCartService(auctionData: AuctionData) {
@@ -126,10 +127,6 @@ async function startConsumer() {
       channel.ack(msg);
     }
   });
-
-  console.log(
-    `Auction consumer is running! Listening for messages on exchange ${exchange} from queue(s) ${auctionStartQueue}, ${auctionEndQueue}..`,
-  );
 
   //Auction Reminder
   await channel.assertQueue("auction-ending-soon-queue", { durable: true });

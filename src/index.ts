@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
-const envFile = process.env.DEV ? "../.env" : "";
+const envFile = process.env.DEV ? "../.env" : ".";
 dotenv.configDotenv({ path: envFile });
+console.log("process.env.DEV", process.env.DEV);
 import { serve } from "@hono/node-server";
 import { swaggerUI } from "@hono/swagger-ui";
 import { logger } from "hono/logger";
@@ -25,7 +26,7 @@ function startServer() {
 
   startConsumer().catch(console.error);
 
-  app.get("/", (c) => {
+  app.get("/healthcheck", (c) => {
     return c.json({ hello: "world" }, 200);
   });
 
