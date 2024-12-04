@@ -136,7 +136,7 @@ async function startConsumer() {
     "auction.time",
   );
 
-  channel.consume("auction-ending-soon-queue", async (msg) => {
+  channel.consume("auction-ending-soon", async (msg) => {
     if (msg) {
       const { auctionId } = JSON.parse(msg.content.toString());
 
