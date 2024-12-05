@@ -65,7 +65,7 @@ async function scheduleTimeRemainingNotifications(auction, userIds) {
       twelveHours: new Date().setDate(endTime.getDate() - 0.5) - Date.now(),
       fiveMinutes: new Date().setDate(endTime.getDate() - 0.08) - Date.now(),
     };
-
+    //TODO fix the delay logic
     for (const delay in reminderDelays) {
       const message = JSON.stringify({ auction, userIds });
 

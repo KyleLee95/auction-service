@@ -76,6 +76,7 @@ async function startConsumer() {
   const exchange = "auction-exchange";
   const auctionStartQueue = "auction-start-queue";
   const auctionEndQueue = "auction-end-queue";
+  const auctionTimeRemainingQueue = "auction-time-remaining-queue";
 
   const notificationExchange = "notification-exchange";
   await channel.assertExchange(notificationExchange, "direct", {
@@ -133,15 +134,11 @@ async function startConsumer() {
     }
   });
 
-  //Auction Reminder
-  await channel.assertQueue("auction-ending-soon-queue", { durable: true });
-  await channel.bindQueue(
-    "auction-end-queue",
-    "notification-exchange",
-    "auction.time",
-  );
+  //Auction Reminder Time Remaining
+  await channel.assertQueue(auctionTimeRemainingQueue, { durable: true });
+  await channel.bindQueue(auctionTimeRemainingQueue, exchange, "auction.time");
 
-  channel.consume("auction-ending-soon-queue", async (msg) => {
+  channel.consume(auctionTimeRemainingQueue, async (msg) => {
     if (msg) {
       const { auctionId } = JSON.parse(msg.content.toString());
 
@@ -172,12 +169,7 @@ async function startConsumer() {
           auction,
         });
         console.log("sending time remaing message");
-        channel.publish(
-          "notification-exchange",
-          "auction.time",
-          Buffer.from(message),
-          {},
-        );
+        channel.publish(exchange, "auction.time", Buffer.from(message), {});
       } catch (error) {
         console.error(
           `Failed to deactivate auction ${auctionId}:`,
