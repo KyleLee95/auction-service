@@ -1,6 +1,14 @@
 import { createChannel, setupExchange } from "../rabbitmq";
 
-export async function scheduleTimeRemainingNotifications(auction, userIds) {
+export async function scheduleTimeRemainingNotifications({
+  auction,
+  userIds,
+  sellerId,
+}: {
+  auction: unknown;
+  userIds: string[];
+  sellerId: string[];
+}) {
   const { connection, channel } = await createChannel();
   const exchange = "auction-exchange";
 
@@ -21,7 +29,7 @@ export async function scheduleTimeRemainingNotifications(auction, userIds) {
 
   for (const [key, delay] of Object.entries(reminderDelays)) {
     if (delay > 0) {
-      const message = JSON.stringify({ auction, userIds });
+      const message = JSON.stringify({ auction, userIds, sellerId });
       channel.publish(exchange, "auction.time", Buffer.from(message), {
         headers: { "x-delay": delay },
       });

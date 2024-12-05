@@ -64,6 +64,7 @@ router.openapi(createAuctionRoute, async (c) => {
     buyItNowEnabled,
     categories,
   } = await c.req.json();
+
   const newAuction = await prisma.auction.create({
     data: {
       title,
@@ -112,7 +113,7 @@ router.openapi(createAuctionRoute, async (c) => {
   //TODO: send email to everyone that matches this query.
   //send a rabbitMQ message to the notification service with all of the user data
 
-  console.log("Scheduling Auction...");
+  console.log("Scheduling Auction...", newAuction.id, newAuction.title);
   await scheduleAuction(
     newAuction.id,
     newAuction.startTime,
@@ -129,7 +130,11 @@ router.openapi(createAuctionRoute, async (c) => {
 
   console.log("Scheduling Auction Reminders...");
 
-  await scheduleTimeRemainingNotifications(newAuction, userIds);
+  await scheduleTimeRemainingNotifications({
+    auction: newAuction,
+    userIds: userIds,
+    sellerId: sellerId,
+  });
 
   console.log("Notifying Users with matching Watchlist criteria...");
 

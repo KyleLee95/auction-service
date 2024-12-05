@@ -108,6 +108,7 @@ router.openapi(createBid, async (c) => {
       if (lastBid) {
         await notifyNewBid({
           userIds: [lastBid.userId],
+          sellerId: [lastBid.auction.sellerId],
           auction: lastBid.auction,
           bid: lastBid,
         });

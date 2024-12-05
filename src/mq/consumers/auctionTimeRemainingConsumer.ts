@@ -11,11 +11,12 @@ export async function auctionTimeRemainingConsumer(
 
   channel.consume(queue, async (msg) => {
     if (msg) {
-      const { auctionId } = JSON.parse(msg.content.toString());
+      const payload = JSON.parse(msg.content.toString());
+
       try {
         const watchlistsWatchingAuction =
           await prisma.auctionsOnWatchlists.findMany({
-            where: { auctionId: auctionId },
+            where: { auctionId: payload.auction.id },
             include: {
               watchlist: {
                 select: { userId: true },
@@ -32,11 +33,11 @@ export async function auctionTimeRemainingConsumer(
 
         const message = JSON.stringify({
           eventType: "AUCTION_TIME_REMAINING",
-          userIds: [sellerId, ...watchingUserIds],
+          userIds: [...watchingUserIds],
+          sellerId: [sellerId],
           auction,
         });
 
-        console.log("Sending time remaining message");
         channel.publish(exchange, "auction.time", Buffer.from(message), {});
       } catch (error) {
         console.error(
