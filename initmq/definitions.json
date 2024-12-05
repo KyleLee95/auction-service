@@ -1,0 +1,120 @@
+{
+"queues": [
+    {
+        "name": "auction-end-queue",
+        "vhost": "/",
+        "durable": true,
+        "auto_delete": false,
+        "arguments": {
+            "x-queue-type": "classic"
+        }
+    },
+    {
+        "name": "auction-ending-soon-queue",
+        "vhost": "/",
+        "durable": true,
+        "auto_delete": false,
+        "arguments": {
+            "x-queue-type": "classic"
+        }
+    },
+    {
+        "name": "auction-start-queue",
+        "vhost": "/",
+        "durable": true,
+        "auto_delete": false,
+        "arguments": {
+            "x-queue-type": "classic"
+        }
+    },
+    {
+        "name": "new-bid-queue",
+        "vhost": "/",
+        "durable": true,
+        "auto_delete": false,
+        "arguments": {
+            "x-queue-type": "classic"
+        }
+    },
+    {
+        "name": "watchlist-match-queue",
+        "vhost": "/",
+        "durable": true,
+        "auto_delete": false,
+        "arguments": {
+            "x-queue-type": "classic"
+        }
+    },
+],
+"exchanges": [
+    {
+        "name": "auction-exchange",
+        "vhost": "/",
+        "type": "x-delayed-message",
+        "durable": true,
+        "auto_delete": false,
+        "internal": false,
+        "arguments": {}
+    },
+    {
+        "name": "notification-exchange",
+        "vhost": "/",
+        "type": "direct",
+        "durable": true,
+        "auto_delete": false,
+        "internal": false,
+        "arguments": {}
+    },
+    {
+        "name": "cart-exchange",
+        "vhost": "/",
+        "type": "direct",
+        "durable": true,
+        "auto_delete": false,
+        "internal": false,
+        "arguments": {}
+    }
+],
+"bindings": [
+    {
+        "source": "notification-exchange",
+        "vhost": "/",
+        "destination": "watchlist-match-queue",
+        "destination_type": "queue",
+        "routing_key": "watchlist.match",
+        "arguments": {}
+    },
+    {
+        "source": "notification-exchange",
+        "vhost": "/",
+        "destination": "new-bid-queue",
+        "destination_type": "queue",
+        "routing_key": "bid.new",
+        "arguments": {}
+    },
+    {
+        "source": "auction-exchange",
+        "vhost": "/",
+        "destination": "auction-end-queue",
+        "destination_type": "queue",
+        "routing_key": "auction.end",
+        "arguments": {}
+    },
+    {
+        "source": "auction-exchange",
+        "vhost": "/",
+        "destination": "auction-start-queue",
+        "destination_type": "queue",
+        "routing_key": "auction.start",
+        "arguments": {}
+    },
+    {
+        "source": "auction-exchange",
+        "vhost": "/",
+        "destination": "auction-ending-soon-queue",
+        "destination_type": "queue",
+        "routing_key": "auction.time",
+        "arguments": {}
+    }
+  ]
+ }
