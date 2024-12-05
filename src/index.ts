@@ -9,7 +9,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { prettyJSON } from "hono/pretty-json";
 import { showRoutes } from "hono/dev";
 import { apiRouter } from "./routes/index";
-import { startConsumer } from "./mq/consumer";
+import { startConsumers } from "./mq/consumers/index";
 import {
   OpenApiGeneratorV3,
   extendZodWithOpenApi,
@@ -24,7 +24,14 @@ export const customLogger = (message: string, ...rest: string[]) => {
 function startServer() {
   const PORT = process.env.PORT || 4000;
 
-  startConsumer().catch(console.error);
+  startConsumers()
+    .then(() => {
+      console.log("Consumers Started");
+    })
+    .catch((error) => {
+      console.error("Failed to start consumers:", error);
+      process.exit(1);
+    });
 
   app.get("/healthcheck", (c) => {
     return c.json({ hello: "world" }, 200);

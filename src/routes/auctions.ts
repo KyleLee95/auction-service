@@ -3,7 +3,7 @@ import {
   scheduleAuction,
   scheduleTimeRemainingNotifications,
   notifyMatchingWatchlistUsers,
-} from "../mq/publisher";
+} from "../mq/publishers";
 import prisma from "../db";
 import { z } from "zod";
 import {
