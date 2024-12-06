@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 const envFile = process.env.DEV ? "../.env" : ".";
 dotenv.configDotenv({ path: envFile });
-
 import { serve } from "@hono/node-server";
 import { swaggerUI } from "@hono/swagger-ui";
 import { logger } from "hono/logger";
@@ -15,6 +14,7 @@ import {
   extendZodWithOpenApi,
 } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
+import { startCronJob } from "./utils/cron";
 const app = new OpenAPIHono().basePath("/");
 
 export const customLogger = (message: string, ...rest: string[]) => {
@@ -85,6 +85,7 @@ function startServer() {
     console.error(`${err}`);
     return c.text("Custom Error Message", 500);
   });
+  startCronJob();
 }
 
 showRoutes(app, {
