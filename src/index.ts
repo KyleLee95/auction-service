@@ -24,10 +24,14 @@ export const customLogger = (message: string, ...rest: string[]) => {
 function startServer() {
   const PORT = process.env.PORT || 4000;
 
-  startConsumers().catch((error) => {
-    console.error("Failed to start consumers:", error);
-    process.exit(1);
-  });
+  startConsumers()
+    .then(() => {
+      console.log("All consumers in the auction service started");
+    })
+    .catch((error) => {
+      console.error("Failed to start consumers:", error);
+      process.exit(1);
+    });
 
   app.get("/healthcheck", (c) => {
     return c.json({ hello: "world" }, 200);
