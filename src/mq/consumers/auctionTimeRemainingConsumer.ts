@@ -1,11 +1,15 @@
 import prisma from "../../db";
-import { createChannel, setupQueue } from "../rabbitmq";
+import { createChannel, setupExchange, setupQueue } from "../rabbitmq";
 
 export async function auctionTimeRemainingConsumer(
   exchange: string,
   queue: string,
 ) {
   const { channel } = await createChannel();
+  await setupExchange(channel, exchange, "x-delayed-message", {
+    durable: true,
+    arguments: { "x-delayed-type": "direct" },
+  });
 
   await setupQueue(channel, queue, exchange, "auction.time");
 

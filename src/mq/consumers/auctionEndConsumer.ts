@@ -1,5 +1,6 @@
 import {
   endAuction,
+  setupExchange,
   sendAuctionDataToCartService,
   createChannel,
   setupQueue,
@@ -7,6 +8,11 @@ import {
 
 export async function endAuctionConsumer(exchange: string, queue: string) {
   const { channel } = await createChannel();
+
+  await setupExchange(channel, exchange, "x-delayed-message", {
+    durable: true,
+    arguments: { "x-delayed-type": "direct" },
+  });
 
   await setupQueue(channel, queue, exchange, "auction.end");
 
