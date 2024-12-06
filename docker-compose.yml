@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: app-container
+    container_name: auction-service
     ports:
       - "4000:4000"
     environment:
