@@ -216,6 +216,9 @@ router.openapi(searchAuctionsRoute, async (c) => {
   if (!term && !categories) {
     const genericAuctions = await prisma.auction.findMany({
       take: 50,
+      where: {
+        isActive: true,
+      },
       include: {
         bids: {
           select: { amount: true },
@@ -956,6 +959,7 @@ router.openapi(closeAuction, async (c) => {
     },
     data: {
       isActive: body.isActive,
+      closedAt: new Date(Date.now()).toISOString(),
     },
   });
   if (!updatedAuction) {
