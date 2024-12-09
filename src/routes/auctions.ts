@@ -217,6 +217,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
       take: 50,
       where: {
         isActive: true,
+        endTime: { gte: new Date(Date.now()) },
       },
       include: {
         bids: {
@@ -230,6 +231,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
           },
         },
       },
+      orderBy: { endTime: order === DESC ? "desc" : "asc" },
     });
 
     return c.json({ auctions: genericAuctions }, 200);
@@ -241,6 +243,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
         orderBy: { endTime: order === DESC ? "desc" : "asc" },
         where: {
           isActive: true,
+          endTime: { gte: new Date(Date.now()) },
           title: {
             contains: term,
             mode: "insensitive",
@@ -293,6 +296,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
       const taggedWithCategories = await prisma.auction.findMany({
         where: {
           isActive: true,
+          endTime: { gte: new Date(Date.now()) },
           AND: [
             {
               buyItNowPrice: {
@@ -353,8 +357,10 @@ router.openapi(searchAuctionsRoute, async (c) => {
     }
 
     const termMatchesKeywordAndCategory = await prisma.auction.findMany({
+      orderBy: { endTime: order === DESC ? "desc" : "asc" },
       where: {
         isActive: true,
+        endTime: { gte: new Date(Date.now()) },
         title: {
           contains: term,
           mode: "insensitive",
@@ -469,52 +475,6 @@ const getAuctionsRoute = createRoute({
   },
 });
 
-const getFlaggedAuctions = createRoute({
-  method: "get",
-  path: "/flagged",
-  tags: ["Auction"],
-  responses: {
-    200: {
-      content: {
-        "application/json": {
-          schema: z.object({ auctions: z.array(AuctionModel) }),
-        },
-      },
-      description: "Retrieve an auction by Id",
-    },
-    404: {
-      content: {
-        "application/json": {
-          schema: z.object({ message: z.string() }),
-        },
-      },
-      description: "Not found",
-    },
-  },
-});
-
-router.openapi(getFlaggedAuctions, async (c) => {
-  const auction = await prisma.auction.findFirst({
-    where: {
-      flagged: true,
-    },
-    include: {
-      categories: { include: { category: true } },
-      bids: { orderBy: { amount: "desc" } },
-    },
-  });
-
-  if (!auction) {
-    return c.json({ message: "No flagged auctions found" }, 404);
-  }
-  return c.json(
-    {
-      auctions: [auction],
-    },
-    200,
-  );
-});
-
 router.openapi(getAuctionsRoute, async (c) => {
   const { userId, includeBidOn, order } = c.req.query();
   if (!userId) {
@@ -576,6 +536,52 @@ router.openapi(getAuctionsRoute, async (c) => {
     console.error("Error fetching auctions:", error);
     return c.json({ error: "Failed to fetch auctions" }, 500);
   }
+});
+
+const getFlaggedAuctions = createRoute({
+  method: "get",
+  path: "/flagged",
+  tags: ["Auction"],
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z.object({ auctions: z.array(AuctionModel) }),
+        },
+      },
+      description: "Retrieve an auction by Id",
+    },
+    404: {
+      content: {
+        "application/json": {
+          schema: z.object({ message: z.string() }),
+        },
+      },
+      description: "Not found",
+    },
+  },
+});
+
+router.openapi(getFlaggedAuctions, async (c) => {
+  const auction = await prisma.auction.findFirst({
+    where: {
+      flagged: true,
+    },
+    include: {
+      categories: { include: { category: true } },
+      bids: { orderBy: { amount: "desc" } },
+    },
+  });
+
+  if (!auction) {
+    return c.json({ message: "No flagged auctions found" }, 404);
+  }
+  return c.json(
+    {
+      auctions: [auction],
+    },
+    200,
+  );
 });
 
 const getAuctionByIdRoute = createRoute({
