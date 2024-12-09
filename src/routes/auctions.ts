@@ -58,7 +58,6 @@ router.openapi(createAuctionRoute, async (c) => {
     buyItNowPrice,
     startTime,
     endTime,
-    isActive,
     sellerId,
     quantity,
     buyItNowEnabled,
@@ -246,7 +245,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
             contains: term,
             mode: "insensitive",
           },
-          OR: [
+          AND: [
             {
               buyItNowPrice: {
                 lte: sanitizedMaxPrice,
@@ -276,6 +275,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
             orderBy: {
               amount: "desc",
             },
+            select: { amount: true },
             take: 1,
           },
         },
@@ -293,7 +293,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
       const taggedWithCategories = await prisma.auction.findMany({
         where: {
           isActive: true,
-          OR: [
+          AND: [
             {
               buyItNowPrice: {
                 lte: sanitizedMaxPrice,
@@ -309,8 +309,6 @@ router.openapi(searchAuctionsRoute, async (c) => {
                 },
               },
             },
-          ],
-          AND: [
             {
               categories: {
                 some: {
@@ -331,6 +329,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
               amount: "desc",
             },
             take: 1, // Include the current highest bid
+            select: { amount: true },
           },
           categories: {
             select: {
@@ -360,7 +359,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
           contains: term,
           mode: "insensitive",
         },
-        OR: [
+        AND: [
           {
             buyItNowPrice: {
               lte: sanitizedMaxPrice,
@@ -376,8 +375,6 @@ router.openapi(searchAuctionsRoute, async (c) => {
               },
             },
           },
-        ],
-        AND: [
           {
             categories: {
               some: {
@@ -397,6 +394,7 @@ router.openapi(searchAuctionsRoute, async (c) => {
             amount: "desc",
           },
           take: 1, // Include the current highest bid
+          select: { amount: true },
         },
         categories: {
           select: {
@@ -535,6 +533,7 @@ router.openapi(getAuctionsRoute, async (c) => {
             category: true,
           },
         },
+        bids: true,
       },
     });
 
