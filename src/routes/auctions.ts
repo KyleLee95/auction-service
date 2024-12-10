@@ -697,21 +697,23 @@ router.openapi(updateAuctionRoute, async (c) => {
     },
   });
 
-  await prisma.categoriesOnAuctions.deleteMany({
-    where: {
-      categoryId: {
-        in: updatedAuction.categories.map((category) => {
-          return category.category.id;
-        }),
+  if (categories) {
+    await prisma.categoriesOnAuctions.deleteMany({
+      where: {
+        categoryId: {
+          in: updatedAuction.categories.map((category) => {
+            return category.category.id;
+          }),
+        },
       },
-    },
-  });
+    });
 
-  await prisma.categoriesOnAuctions.createManyAndReturn({
-    data: categories.map((category) => {
-      return { categoryId: category.id, auctionId: updatedAuction.id };
-    }),
-  });
+    await prisma.categoriesOnAuctions.createManyAndReturn({
+      data: categories.map((category) => {
+        return { categoryId: category.id, auctionId: updatedAuction.id };
+      }),
+    });
+  }
 
   if (!updatedAuction) {
     return c.json({ message: "Could not update auction" }, 422);
