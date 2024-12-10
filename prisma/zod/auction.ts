@@ -14,25 +14,30 @@ import {
 
 export const AuctionModelInput = z
   .object({
-    title: z.string().openapi({ example: "Cool Auction Title" }),
-    description: z.string().openapi({ example: "Cool description" }),
-    startPrice: z.number().openapi({ example: 0.99 }), // Accepts number from client
-    shippingPrice: z.number().openapi({ example: 0.99 }),
-    buyItNowPrice: z.number().openapi({ example: 0.99 }),
+    title: z.string().optional().openapi({ example: "Cool Auction Title" }),
+    description: z.string().optional().openapi({ example: "Cool description" }),
+    startPrice: z.number().optional().openapi({ example: 0.99 }), // Accepts number from client
+    shippingPrice: z.number().optional().openapi({ example: 0.99 }),
+    buyItNowPrice: z.number().optional().openapi({ example: 0.99 }),
     startTime: z.coerce
       .date()
+      .optional()
       .openapi({ example: new Date(Date.now()).toISOString() }),
-    endTime: z.coerce.date().openapi({
-      example: new Date(
-        new Date().setDate(new Date().getDate() + 14),
-      ).toISOString(),
-    }),
-    isActive: z.boolean().openapi({ example: true }),
+    endTime: z.coerce
+      .date()
+      .optional()
+      .openapi({
+        example: new Date(
+          new Date().setDate(new Date().getDate() + 14),
+        ).toISOString(),
+      }),
+    isActive: z.boolean().optional().openapi({ example: true }),
     sellerId: z
       .string()
+      .optional()
       .openapi({ example: "ae551edb-a55f-41e1-b4c1-fcbdd3919b26" }),
-    quantity: z.number().int().openapi({ example: 10 }),
-    buyItNowEnabled: z.boolean().openapi({ example: false }),
+    quantity: z.number().int().optional().openapi({ example: 10 }),
+    buyItNowEnabled: z.boolean().optional().openapi({ example: false }),
     deleted: z.boolean().optional().openapi({ example: false }),
     flagged: z.boolean().optional().openapi({ example: false }),
     categories: z

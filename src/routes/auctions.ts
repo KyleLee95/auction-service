@@ -248,19 +248,6 @@ router.openapi(searchAuctionsRoute, async (c) => {
             contains: term,
             mode: "insensitive",
           },
-          AND: [
-            {
-              buyItNowPrice: {
-                lte: sanitizedMaxPrice,
-                gt: 0,
-              },
-            },
-            {
-              bids: {
-                some: { amount: { lte: sanitizedMaxPrice } },
-              },
-            },
-          ],
         },
         include: {
           categories: {
