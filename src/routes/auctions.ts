@@ -697,7 +697,7 @@ router.openapi(updateAuctionRoute, async (c) => {
     },
   });
 
-  if (categories) {
+  if (categories !== undefined) {
     await prisma.categoriesOnAuctions.deleteMany({
       where: {
         categoryId: {
@@ -714,6 +714,66 @@ router.openapi(updateAuctionRoute, async (c) => {
       }),
     });
   }
+
+  if (!updatedAuction) {
+    return c.json({ message: "Could not update auction" }, 422);
+  }
+
+  return c.json({ auctions: [updatedAuction] }, 200);
+});
+
+const updateQuantityRoute = createRoute({
+  method: "put",
+  path: "/{id}/quantity",
+  tags: ["Auction"],
+  request: {
+    params: ParamsSchema,
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({ quantity: z.number() }),
+        },
+        "multipart/form-data": {
+          schema: AuctionModelInput,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: z.object({ auctions: z.array(AuctionModel) }),
+        },
+      },
+      description: "Update an auction with a matching Id",
+    },
+    422: {
+      content: {
+        "application/json": {
+          schema: z.object({ message: z.string() }),
+        },
+      },
+      description: "Could not update auction",
+    },
+  },
+});
+
+router.openapi(updateAuctionRoute, async (c) => {
+  const { id } = c.req.valid("param");
+  const { quantity } = await c.req.json();
+
+  const updatedAuction = await prisma.auction.update({
+    where: {
+      id: id,
+    },
+    data: {
+      quantity,
+    },
+    include: {
+      categories: { include: { category: true } },
+    },
+  });
 
   if (!updatedAuction) {
     return c.json({ message: "Could not update auction" }, 422);
