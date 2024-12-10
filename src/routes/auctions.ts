@@ -759,7 +759,7 @@ const updateQuantityRoute = createRoute({
   },
 });
 
-router.openapi(updateAuctionRoute, async (c) => {
+router.openapi(updateQuantityRoute, async (c) => {
   const { id } = c.req.valid("param");
   const { quantity } = await c.req.json();
 
